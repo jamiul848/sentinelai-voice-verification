@@ -6,6 +6,7 @@ the audio preprocessing module.
 
 from fastapi import FastAPI
 from sentinelai.audio.api import router as audio_router
+from sentinelai.enrollment.api import router as enrollment_router
 
 
 def create_app() -> FastAPI:
@@ -41,6 +42,8 @@ def create_app() -> FastAPI:
     # Register modular API routers
     # audio_router has prefix="/audio", resulting in endpoints like /audio/preprocess
     application.include_router(audio_router)
+    # enrollment_router has prefix="/enrollment", resulting in endpoints like /enrollment/register
+    application.include_router(enrollment_router)
 
     return application
 
