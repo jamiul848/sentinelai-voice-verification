@@ -29,7 +29,6 @@ htmlcov/
 
 # Demo outputs & logs
 outputs/
-*.wav
 *.log
 
 # Environments
@@ -39,3 +38,20 @@ env/
 venv/
 ENV/
 
+# Model Weights, Checkpoints & SpeechBrain / HuggingFace Caches
+.cache/
+models/
+checkpoints/
+hf_cache/
+speechbrain_cache/
+
+# Audio Data, Voice Recordings & Datasets
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+data/
+recordings/
+voices/
+consented_voices/
