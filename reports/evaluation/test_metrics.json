@@ -1,0 +1,47 @@
+{
+  "split_name": "test-clean",
+  "dataset_name": "LibriSpeech (test-clean)",
+  "model_identifier": "speechbrain/spkrec-ecapa-voxceleb",
+  "total_trials": 2624,
+  "genuine_trials": 2264,
+  "impostor_trials": 360,
+  "operating_threshold": 0.605697,
+  "is_threshold_calibrated_on_this_split": false,
+  "eer_metrics": {
+    "eer": 0.024735,
+    "eer_percent": 2.4735,
+    "eer_threshold": 0.603449,
+    "far_at_eer": 0.024735,
+    "frr_at_eer": 0.024735,
+    "method": "linear_interpolation"
+  },
+  "operating_metrics": {
+    "threshold": 0.605697,
+    "far": 0.019444,
+    "frr": 0.026502,
+    "accuracy": 0.974466,
+    "precision": 0.996834,
+    "recall": 0.973498,
+    "specificity": 0.980556,
+    "f1_score": 0.985028,
+    "confusion_matrix": {
+      "true_positives": 2204,
+      "false_negatives": 60,
+      "false_positives": 7,
+      "true_negatives": 353
+    },
+    "trial_counts": {
+      "genuine_trials": 2264,
+      "impostor_trials": 360,
+      "total_trials": 2624
+    }
+  },
+  "roc_auc": 0.997588,
+  "score_statistics": {
+    "mean": 0.7156,
+    "std": 0.1375,
+    "min": 0.1605,
+    "max": 1.0,
+    "median": 0.7428
+  }
+}

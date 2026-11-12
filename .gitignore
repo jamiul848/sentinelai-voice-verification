@@ -52,6 +52,7 @@ speechbrain_cache/
 *.ogg
 *.m4a
 data/
+datasets/
 recordings/
 voices/
 consented_voices/

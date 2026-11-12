@@ -12,7 +12,10 @@ SentinelAI provides an independent, modular speaker recognition and voice verifi
 - **Phase 2 (Complete):** Pretrained ECAPA-TDNN Integration, Fixed-Dimensional Speaker Embedding Extraction, L2 Normalization, and Directional Cosine Similarity.
 - **Phase 3 (Complete):** Multi-Utterance Voice Enrollment, Reference Profile Aggregation, Secure Profile Storage, and Profile Revocation.
 - **Phase 4 (Complete):** 1:1 Speaker Verification Engine, Configurable Decision Thresholding, Privacy-Preserving Audit Logging, and Verification API.
-- **Phase 5 (Upcoming):** Presentation Attack Detection (PAD) and Voice Anti-Spoofing Defense (Deepfake and physical replay detection).
+- **Phase 5A (Complete):** LibriSpeech Dataset Inspection, Acoustic Signal Validation, Demographic Annotation, Zero-Overlap Verification, and JSON/Markdown Reporting.
+- **Phase 5B (Complete):** Multi-Speaker Enrollment & Trial Generation (Deterministic 3-recording enrollment, Genuine vs. Impostor Trials, Leakage Validation, Manifest Generation).
+- **Phase 5C (Complete):** Threshold Calibration at Equal Error Rate (θ* = 0.6057, Dev EER = 3.41%), Frozen Test Evaluation (FAR = 1.94%, FRR = 2.65%), ROC/DET Visualizations, and Research Reporting.
+- **Phase 6 (Upcoming):** Presentation Attack Detection (PAD) and Voice Anti-Spoofing Defense (Deepfake and physical replay detection).
 
 ```
 sentinelai/
@@ -43,21 +46,52 @@ sentinelai/
 │   ├── storage.py              # Secure profile storage backend (JSON metadata + atomic .npz)
 │   ├── service.py              # EnrollmentService orchestrator
 │   └── api.py                  # Enrollment APIRouter (/enrollment/*)
-└── verification/               # 1:1 Speaker Verification Engine (Phase 4)
+├── verification/               # 1:1 Speaker Verification Engine (Phase 4)
+│   ├── __init__.py             # Clean module exports
+│   ├── config.py               # VerificationConfig (threshold, exposure toggle, audit paths)
+│   ├── exceptions.py           # Verification domain exceptions (VerificationError, etc.)
+│   ├── schemas.py              # VerificationResponse, VerificationHealthResponse, VerificationStatus
+│   ├── scoring.py              # Cosine similarity scoring with clipping & dimension checks
+│   ├── threshold.py            # VerificationThreshold manager with version tracking & bounds
+│   ├── audit.py                # Append-only privacy-safe audit logging (JSON lines)
+│   ├── service.py              # SpeakerVerificationService orchestrator
+│   └── api.py                  # Verification APIRouter (/verification/*)
+└── evaluation/                 # Dataset Inspection & Benchmark Evaluation (Phase 5)
     ├── __init__.py             # Clean module exports
-    ├── config.py               # VerificationConfig (threshold, exposure toggle, audit paths)
-    ├── exceptions.py           # Verification domain exceptions (VerificationError, etc.)
-    ├── schemas.py              # VerificationResponse, VerificationHealthResponse, VerificationStatus
-    ├── scoring.py              # Cosine similarity scoring with clipping & dimension checks
-    ├── threshold.py            # VerificationThreshold manager with version tracking & bounds
-    ├── audit.py                # Append-only privacy-safe audit logging (JSON lines)
-    ├── service.py              # SpeakerVerificationService orchestrator
-    └── api.py                  # Verification APIRouter (/verification/*)
+    ├── dataset_inspector.py    # Recursive dataset scanner, SoundFile header inspector, overlap detector
+    ├── dataset_report.py       # Data models, serialization, and Markdown report formatters
+    ├── speaker_discovery.py    # Speaker & recording discovery, deterministic enrollment selection
+    ├── batch_embedder.py       # Batch ECAPA-TDNN extraction with disk caching & resumability
+    ├── trial_generator.py      # Genuine and impostor trial generation with reproducible seeding
+    ├── trial_manifest.py       # CSV trial manifest & JSON summary writers/readers
+    ├── leakage_validator.py    # Speaker-disjoint, recording non-overlap, label & duplicate validator
+    ├── metrics.py              # FAR/FRR curves, continuous EER interpolation, ROC-AUC, classification metrics
+    ├── threshold_calibrator.py # EER decision threshold calibration on dev data & immutable freezing
+    ├── trial_scorer.py         # Cosine similarity scoring engine & sanitized score manifest generation
+    ├── visualizer.py           # Matplotlib plotting (ROC, DET, FAR/FRR, distributions, confusion matrix)
+    ├── evaluator.py            # End-to-end evaluation pipeline orchestrator across dev and test splits
+    └── evaluation_report.py    # Markdown research report generator & JSON summary serializer
 scripts/
 ├── run_preprocessing_demo.py   # Phase 1 standalone preprocessing runner
 ├── run_speaker_embedding_demo.py # Phase 2 standalone ECAPA-TDNN embedding runner
 ├── run_enrollment_demo.py      # Phase 3 standalone voice enrollment & revocation runner
-└── run_verification_demo.py    # Phase 4 standalone speaker verification trial runner
+├── run_verification_demo.py    # Phase 4 standalone speaker verification trial runner
+├── inspect_librispeech.py      # Phase 5A CLI dataset inspection & validation tool
+├── generate_verification_trials.py # Phase 5B CLI trial generation & manifest pipeline
+└── run_evaluation.py           # Phase 5C CLI threshold calibration & benchmark evaluation
+reports/
+├── librispeech_inspection_report.json # Structured inspection metrics
+├── librispeech_inspection_report.md   # Formatted markdown inspection report
+└── evaluation/                 # Phase 5C Evaluation Artifacts
+    ├── calibrated_threshold.json      # Calibrated operating threshold specification
+    ├── development_metrics.json       # Development split performance metrics
+    ├── test_metrics.json              # Unseen test split performance metrics (frozen threshold)
+    ├── evaluation_report.md           # Formal scientific evaluation report
+    └── figures/                       # Publication-quality benchmark figures (ROC, DET, FAR/FRR, CM)
+outputs/
+└── evaluation/
+    ├── dev/                    # dev-clean trials (trials.csv, scores.csv, summary.json)
+    └── test/                   # test-clean trials (trials.csv, scores.csv, summary.json)
 notebooks/
 └── ecapa_embedding_demo.ipynb  # Interactive Google Colab & local Jupyter demonstration
 tests/
@@ -65,31 +99,13 @@ tests/
 ├── test_audio_api.py           # FastAPI application and endpoint tests
 ├── test_audio_preprocessor.py  # Audio preprocessing unit tests
 ├── speaker/                    # Speaker module test suite (Phase 2)
-│   ├── __init__.py
-│   ├── conftest.py             # Speaker fixtures & mock model classes
-│   ├── test_speaker_config.py  # Configuration & device validation tests
-│   ├── test_similarity.py      # Cosine similarity mathematical & edge case tests
-│   ├── test_model_loader_mocked.py # Fast unit tests for model loader caching
-│   ├── test_embedding_mocked.py# Fast unit tests for embedding extractor
-│   └── test_ecapa_integration.py # Real live pretrained ECAPA-TDNN inference test
 ├── enrollment/                 # Enrollment module test suite (Phase 3)
-│   ├── __init__.py
-│   ├── conftest.py             # Enrollment fixtures, mock extractors, synthetic audio
-│   ├── test_enrollment_validation.py # Input validation, consent & recording limits
-│   ├── test_embedding_aggregation.py # Mathematical mean aggregation & consistency
-│   ├── test_profile_storage.py # Storage, persistence, and schema safety tests
-│   ├── test_profile_revocation.py # Revocation & biometric vector purging tests
-│   ├── test_enrollment_service.py # Core service lifecycle (enroll, reenroll, status)
-│   └── test_enrollment_api.py  # REST API integration & error handling tests
-└── verification/               # Speaker verification test suite (Phase 4)
+├── verification/               # Speaker verification test suite (Phase 4)
+└── evaluation/                 # Evaluation test suite (Phase 5A, 5B & 5C)
     ├── __init__.py
-    ├── conftest.py             # Verification fixtures, test profiles, client fixtures
-    ├── test_scoring.py         # Cosine scoring, dimension congruence, zero-norm guardrails
-    ├── test_threshold.py       # Threshold bounds, evaluation rules, version tracking
-    ├── test_profile_validation.py # Active profile lookup, revoked/missing/corrupted handling
-    ├── test_verification_service.py # Match/No-Match workflows, latency, score masking
-    ├── test_verification_api.py # FastAPI verification routes, upload limits, health checks
-    └── test_verification_security.py # Privacy-leak prevention, audit sanitization, injection rejection
+    ├── test_dataset_inspector.py   # Unit tests for dataset inspector, audio health, overlap detection
+    ├── test_trial_generator.py     # Unit tests for discovery, trial generation, leakage validation
+    └── test_evaluation_metrics.py  # Unit tests for scoring, EER interpolation, ROC-AUC, freezing
 ```
 
 ---
@@ -102,91 +118,165 @@ To maintain scientific rigor and clear boundaries across security domains:
 | :--- | :--- | :--- | :--- |
 | **Voice Enrollment** | Multi-utterance acoustic template creation & secure storage | *"How do we capture and model an authorized reference identity?"* | Phase 3 (Done) |
 | **Speaker Verification** | 1:1 acoustic similarity evaluation against a decision threshold | *"Does this candidate recording match the claimed identity's profile?"* | Phase 4 (Done) |
-| **Voice Anti-Spoofing (PAD)** | Presentation attack detection (replay, synthesis, deepfakes) | *"Is this voice genuine, live human speech or an artificial artifact?"* | Phase 5 (Upcoming) |
+| **Dataset Inspection** | Data health, audio property validation, and speaker overlap detection | *"Is this evaluation dataset valid, uncorrupted, and leakage-free?"* | Phase 5A (Done) |
+| **Voice Anti-Spoofing (PAD)** | Presentation attack detection (replay, synthesis, deepfakes) | *"Is this voice genuine, live human speech or an artificial artifact?"* | Phase 6 (Upcoming) |
 
 > [!IMPORTANT]
 > **Speaker Verification alone is NOT a complete authentication system.**
-> A matching voice recording can still be a physical acoustic replay, a voice conversion sample, or a text-to-speech deepfake. Production deployment strictly requires integration with Phase 5 Presentation Attack Detection (PAD), session authorization tokens, and replay defense.
+> A matching voice recording can still be a physical acoustic replay, a voice conversion sample, or a text-to-speech deepfake. Production deployment strictly requires integration with Presentation Attack Detection (PAD), session authorization tokens, and replay defense.
 
 ---
 
-## 3. Speaker Verification Engine (Phase 4)
+## 3. Phase 5A: LibriSpeech Dataset Inspection & Validation
 
-### Objective
-The Speaker Verification Engine performs 1:1 identity verification:
-> *"Does this newly submitted voice recording belong to the speaker whose voice profile is already enrolled?"*
+### Dataset Summary (`dev-clean` & `test-clean`)
+The dataset inspection module (`sentinelai.evaluation.DatasetInspector`) recursively scans the dataset without reading audio arrays into memory, validating header integrity, sample rates, channels, durations, and speaker identity partitions:
 
-### Pipeline Workflow
-```
-[Claimant Identity (user_id / profile_id)] + [Claimant Audio (WAV)]
-                         │
-                         ▼
-             [Input Validation & Size Check]
-                         │
-                         ▼
-        [Active Enrolled Profile Retrieval] ──> (Reject if NOT_FOUND or REVOKED)
-                         │
-                         ▼
-          [Candidate Audio Preprocessing]  ──> (Validate 16kHz Mono, RMS, Duration)
-                         │
-                         ▼
-       [ECAPA-TDNN Feature Extraction]    ──> (Extract 192-dim Unit Vector)
-                         │
-                         ▼
-       [Directional Cosine Similarity]    ──> (Compute score in [-1.0, 1.0])
-                         │
-                         ▼
-         [Threshold Comparison: score >= θ]
-                         ├─── (True)  ──> MATCH    (verified=True)
-                         └─── (False) ──> NO_MATCH (verified=False)
-                         │
-                         ▼
-        [Privacy-Preserving Audit Event]   ──> (Append to verification_audit.jsonl)
-                         │
-                         ▼
-         [Safe Public VerificationResponse] (Biometrics strictly withheld)
-```
+| Metric | Overall Total | `dev-clean` | `test-clean` |
+| :--- | :---: | :---: | :---: |
+| **Unique Speakers** | **76** | 40 | 36 |
+| **Audio Chapters** | **174** | 97 | 77 |
+| **Total Utterances** | **5,075** | 2,703 | 2,372 |
+| **Total Duration** | **10h 11m 01.55s** | 5h 23m 16.12s | 4h 47m 45.43s |
+| **Mean Utterance Duration** | 7.22 s | 7.18 s (±4.70) | 7.28 s (±5.08) |
+| **Min / Max Duration** | 1.28 s / 34.95 s | 1.45 s / 32.65 s | 1.28 s / 34.95 s |
+| **Sample Rate** | **100% 16,000 Hz** | 16,000 Hz | 16,000 Hz |
+| **Channels** | **100% Mono** | Mono | Mono |
+| **Bit Depth / Subtype** | **Signed 16-bit PCM** | PCM_16 | PCM_16 |
+| **Corrupted / Empty Files** | **0 / 0 (100% Valid)** | 0 / 0 | 0 / 0 |
+| **Dev/Test Speaker Overlap** | **0 (Zero Leakage)** | Disjoint | Disjoint |
 
-### Mathematical Scoring & Score Interpretation
-Given reference vector $\mathbf{e}_{\text{ref}}$ and claimant vector $\mathbf{e}_{\text{claimant}}$ where $\|\mathbf{e}\|_2 = 1.0$:
-
-$$\text{Cosine Similarity} = \frac{\mathbf{e}_{\text{ref}} \cdot \mathbf{e}_{\text{claimant}}}{\|\mathbf{e}_{\text{ref}}\|_2 \|\mathbf{e}_{\text{claimant}}\|_2}$$
-
-- **Range:** Strictly clipped to $[-1.0, 1.0]$.
-- **Critical Scientific Notice:** Cosine similarity is a directional metric in high-dimensional hyperspace. **It is NOT a probability or percentage confidence of identity.** A score of $0.85$ does NOT mean "85% confidence that the claimant is the speaker"; it must be evaluated strictly against an empirically calibrated decision threshold $\theta$.
-
-### Decision Threshold & Scientific Calibration
-- **Configurable:** Threshold $\theta \in [-1.0, 1.0]$ with default development threshold $\theta = 0.65$ (`dev-uncalibrated-v1.0`).
-- **Version Tracking:** Every verification decision records the `threshold_version` used.
-- **Scientific Notice on Calibration:** The development threshold is provided for functional software execution and must **not** be claimed as scientifically validated for production without empirical evaluation (EER optimization) on labeled human-speaker datasets with frozen development/test splits.
-
-### Privacy, Compliance & Biometric Safeguards
-- **Active-Only Verification:** Profiles in status `REVOKED` are immediately blocked (`ProfileRevokedError`, HTTP 403).
-- **Zero Client-Supplied Embeddings:** API clients cannot submit external reference vectors; reference vectors are retrieved solely from verified local storage.
-- **Biometric Vector Shielding:** Public responses (`VerificationResponse`) strictly withhold reference and candidate embedding arrays.
-- **Configurable Score Exposure:** The raw numerical similarity score can be masked (`expose_similarity_score=False`) to prevent biometric side-channel reconstruction.
-- **Immutable Audit Logging:** Append-only JSON lines log records transaction metadata, timestamps, and decision outcomes, while proactively rejecting payloads containing audio bytes or embedding vectors.
-
----
-
-## 4. Pretrained ECAPA-TDNN Integration (Phase 2)
-
-### Pretrained Model Provenance
-SentinelAI uses the official pretrained model:
-- **Identifier:** `speechbrain/spkrec-ecapa-voxceleb`
-- **Architecture:** Emphasized Channel Attention, Propagation and Aggregation Time Delay Neural Network (ECAPA-TDNN).
-- **Trained By:** SpeechBrain research team on the VoxCeleb 1 and VoxCeleb 2 datasets (7,000+ speakers).
-- **Project Role:** Reused **strictly for pretrained inference**. This project did not train or fine-tune this model.
-- **Hardware Optimization:** Fully validated for CPU inference on standard hardware (Intel Core i3, 8 GB RAM) without requiring CUDA.
-
----
-
-## 5. Execution Commands
-
-### 1. Run Complete Test Suite (153 Passed)
+### Running Dataset Inspection CLI
 ```bash
-# Run all 153 tests across all phases (Audio, Speaker, Enrollment, Verification)
+python scripts/inspect_librispeech.py
+```
+Outputs are automatically compiled and saved to:
+- Structured JSON: `reports/librispeech_inspection_report.json`
+- Formatted Markdown: `reports/librispeech_inspection_report.md`
+
+### Critical Scientific Limitations of LibriSpeech for Speaker Verification
+1. **Read Speech Domain:** Utterances are readings from LibriVox audiobooks (neutral prosody, scripted speech), lacking conversational turn-taking, spontaneous hesitation, and vocal emotional shifts.
+2. **High Acoustic Cleanliness:** High Signal-to-Noise Ratio (SNR) recorded under quiet, near-studio conditions; does not test reverberation or cross-channel acoustic microphone variations.
+3. **ASR Heritage:** Compiled primarily for Automatic Speech Recognition (ASR); genuine and impostor trial pairs must be constructed programmatically rather than collected as natural multi-session claimant attempts.
+4. **Suitability Determination:** Fully suitable as a clean, copyright-free, multi-speaker testbed for algorithm validation, genuine/impostor trial generation, and Equal Error Rate (EER) threshold calibration in Phase 5B/5C.
+
+---
+
+## 4. Phase 5B: Multi-Speaker Enrollment and Verification Trial Generation
+
+### Objective & Architecture
+Phase 5B constructs a reproducible, leakage-free evaluation trial dataset from LibriSpeech `dev-clean` and `test-clean`:
+
+```
+LibriSpeech Split (dev-clean / test-clean)
+       │
+       ▼
+Speaker & Recording Discovery (sentinelai.evaluation.SpeakerRecordingDiscovery)
+       │
+       ▼
+Deterministic Partitioning (sentinelai.evaluation.EnrollmentSelector)
+  ├── 3 Enrollment Utterances per speaker (Reference Profile Generation)
+  └── N - 3 Verification Utterances per speaker (Probe Trials)
+       │
+       ├──► Genuine Trials (label=1, same speaker probe)
+       └──► Impostor Trials (label=0, cross-speaker probe sampled from disjoint speakers)
+       │
+       ▼
+Data Leakage & Integrity Validation (sentinelai.evaluation.LeakageValidator)
+  ├── Speaker-disjoint split verification (0 overlap between dev and test)
+  ├── Enrollment / verification recording non-overlap
+  ├── Label and identity consistency checks
+  └── Duplicate trial & pair elimination
+       │
+       ▼
+Trial Manifest Generation (sentinelai.evaluation.TrialManifestWriter)
+  ├── outputs/evaluation/{dev,test}/trials.csv
+  └── outputs/evaluation/{dev,test}/summary.json
+```
+
+### Trial Manifest Statistics
+
+| Metric | `dev-clean` | `test-clean` | Combined Total |
+| :--- | :---: | :---: | :---: |
+| **Discovered Speakers** | 40 | 36 | 76 |
+| **Eligible Speakers (≥4 recordings)** | 40 | 36 | 76 (100%) |
+| **Ineligible Speakers** | 0 | 0 | 0 |
+| **Enrollment Recordings (3/speaker)** | 120 | 108 | 228 |
+| **Verification Recordings** | 2,583 | 2,264 | 4,847 |
+| **Genuine Trials (label=1)** | 2,583 | 2,264 | 4,847 |
+| **Impostor Trials (label=0, max 10/spk)** | 400 | 360 | 760 |
+| **Total Evaluation Trials** | **2,983** | **2,624** | **5,607** |
+| **Leakage Validation Status** | **PASSED (0 violations)** | **PASSED (0 violations)** | **ZERO LEAKAGE** |
+
+### Data Leakage Prevention Guarantees
+1. **Speaker Disjointness:** Development (`dev-clean`) and evaluation (`test-clean`) splits share exactly 0 speakers.
+2. **Recording Non-Overlap:** No audio recording selected for enrollment is ever evaluated as a verification probe for that speaker.
+3. **Reproducibility:** Partitioning and impostor selection use deterministic pseudo-random seeds (`seed=42`).
+4. **Integrity Validation:** Every generated manifest is automatically checked by `LeakageValidator` before saving.
+
+### Running Phase 5B Trial Generation CLI
+```bash
+# Generate trial manifests for dev-clean and test-clean (dry run, structure only)
+python scripts/generate_verification_trials.py --skip-embedding-extraction
+
+# Full pipeline including ECAPA-TDNN embedding extraction and reference profile aggregation
+python scripts/generate_verification_trials.py
+```
+
+---
+
+## 5. Phase 5C: Threshold Calibration and Performance Analysis
+
+### Objective & Methodology
+Phase 5C implements empirical decision threshold calibration and performance evaluation:
+1. **Development Calibration (`dev-clean`):** Operating threshold $\theta^* = 0.6057$ is calibrated at the Equal Error Rate operating point ($\text{FAR} \approx \text{FRR}$) using continuous linear interpolation.
+2. **Threshold Freezing:** Calibrated parameters are saved to `reports/evaluation/calibrated_threshold.json` and locked into `VerificationThreshold`.
+3. **Unseen Test Evaluation (`test-clean`):** The exact frozen threshold $\theta^*$ is evaluated on test data without post-hoc tuning, preventing data leakage.
+4. **Diagnostic Metrics:** In addition to operational error rates, test ROC-AUC and diagnostic EER are reported.
+
+### Benchmark Evaluation Results
+
+| Metric | Development Split (`dev-clean`) | Test Split (`test-clean`) |
+| :--- | :---: | :---: |
+| **Operating Decision Threshold** | **θ\* = 0.6057 (Calibrated)** | **θ\* = 0.6057 (Frozen)** |
+| **Total Evaluation Trials** | 2,983 | 2,624 |
+| **Genuine Trials (`label=1`)** | 2,583 | 2,264 |
+| **Impostor Trials (`label=0`)** | 400 | 360 |
+| **Equal Error Rate (EER)** | **3.41%** (Operating Point) | **2.47%** (Diagnostic only) |
+| **Operational False Acceptance Rate (FAR)** | **3.50%** | **1.94%** |
+| **Operational False Rejection Rate (FRR)** | **3.41%** | **2.65%** |
+| **Classification Accuracy** | **96.58%** | **97.45%** |
+| **Precision** | 99.44% | 99.68% |
+| **Recall (1 - FRR)** | 96.59% | 97.35% |
+| **F1-Score** | 0.9800 | 0.9850 |
+| **ROC-AUC** | **0.9954** | **0.9976** |
+
+### Running Phase 5C Benchmark Evaluation CLI
+```bash
+# Run benchmark evaluation and generate all reports and figures
+python scripts/run_evaluation.py
+
+# Run rapid synthetic demonstration
+python scripts/run_evaluation.py --synthetic-demo
+```
+Generated reports and figures:
+- [`reports/evaluation/calibrated_threshold.json`](file:///e:/sentinelai-voice-verification/reports/evaluation/calibrated_threshold.json)
+- [`reports/evaluation/development_metrics.json`](file:///e:/sentinelai-voice-verification/reports/evaluation/development_metrics.json)
+- [`reports/evaluation/test_metrics.json`](file:///e:/sentinelai-voice-verification/reports/evaluation/test_metrics.json)
+- [`reports/evaluation/evaluation_report.md`](file:///e:/sentinelai-voice-verification/reports/evaluation/evaluation_report.md)
+- [`reports/evaluation/figures/`](file:///e:/sentinelai-voice-verification/reports/evaluation/figures)
+
+---
+
+## 6. Execution Commands
+
+### 1. Run Complete Test Suite (219 Passed)
+```bash
+# Run all 219 tests across all phases (Audio, Speaker, Enrollment, Verification, Evaluation)
 pytest -v
+
+# Run Phase 5 Evaluation tests only (66 passed: 10 in 5A + 38 in 5B + 18 in 5C)
+pytest -v tests/evaluation/
 
 # Run Phase 4 Speaker Verification tests only (53 passed)
 pytest -v tests/verification/
@@ -201,106 +291,33 @@ pytest -v tests/speaker/
 pytest -v tests/test_audio_preprocessor.py tests/test_audio_api.py
 ```
 
-### 2. Run Speaker Verification Demonstration
-Executes an end-to-end enrollment, genuine match trial, impostor trial, missing profile handling, and revoked profile lockout:
+### 2. Run Speaker Verification Evaluation & Calibration (Phase 5C)
+```bash
+python scripts/run_evaluation.py
+```
+
+### 3. Run Verification Trial Generator (Phase 5B)
+```bash
+python scripts/generate_verification_trials.py --skip-embedding-extraction
+```
+
+### 4. Run LibriSpeech Dataset Inspector (Phase 5A)
+```bash
+python scripts/inspect_librispeech.py
+```
+
+### 5. Run Speaker Verification Demonstration
 ```bash
 python scripts/run_verification_demo.py
 ```
 
-### 3. Run Voice Enrollment Demonstration
-Executes multi-utterance enrollment aggregation, storage, and profile revocation:
+### 6. Run Voice Enrollment Demonstration
 ```bash
 python scripts/run_enrollment_demo.py
 ```
 
-### 4. Run Pretrained Speaker Embedding Demo
-Executes pretrained ECAPA-TDNN inference on CPU, extracting 192-dim embeddings and calculating cosine similarity:
-```bash
-python scripts/run_speaker_embedding_demo.py
-```
-
-### 5. Start FastAPI Server
+### 7. Start FastAPI Server
 ```bash
 uvicorn sentinelai.main:app --reload
 ```
 Interactive OpenAPI Swagger docs: `http://127.0.0.1:8000/docs`
-
----
-
-## 6. REST API Endpoints
-
-### Audio Preprocessing (`/audio`)
-- `POST /audio/preprocess`: Upload a WAV file for validation, resampling, and acoustic metric extraction.
-
-### Voice Enrollment (`/enrollment`)
-- `POST /enrollment/register`: Register a new speaker profile using $\ge 3$ WAV recordings with explicit consent.
-- `GET /enrollment/profile/{profile_id}`: Retrieve safe public profile metadata (embeddings withheld).
-- `GET /enrollment/status/{user_id}`: Check active enrollment status for a given user ID.
-- `POST /enrollment/reenroll`: Re-enroll a user, superseding and purging the previous reference profile.
-- `DELETE /enrollment/profile/{profile_id}`: Revoke a profile, permanently purging biometric embedding vectors while maintaining audit history.
-
-### Speaker Verification (`/verification`)
-- `POST /verification/verify`: Verify claimant identity comparing an uploaded WAV against an enrolled active profile.
-- `GET /verification/health`: Check verification engine status, model load state, active device, and threshold version.
-
----
-
-## 7. Python API Usage
-
-### End-to-End Speaker Verification
-```python
-from sentinelai.speaker import SpeakerConfig, ECAPAModelLoader, SpeakerEmbeddingExtractor
-from sentinelai.enrollment.storage import LocalFileProfileStorage
-from sentinelai.verification import (
-    VerificationConfig,
-    SpeakerVerificationService,
-    VerificationStatus,
-)
-
-# 1. Initialize ECAPA-TDNN extractor and profile storage
-speaker_config = SpeakerConfig(device="cpu", normalize_embeddings=True)
-loader = ECAPAModelLoader(config=speaker_config)
-extractor = SpeakerEmbeddingExtractor(config=speaker_config, loader=loader)
-storage = LocalFileProfileStorage(storage_dir="data/profiles")
-
-# 2. Configure verification engine
-verification_config = VerificationConfig(
-    threshold_value=0.65,
-    threshold_version="dev-uncalibrated-v1.0",
-    expose_similarity_score=True,
-)
-service = SpeakerVerificationService(
-    config=verification_config,
-    extractor=extractor,
-    storage=storage,
-)
-
-# 3. Verify claimant audio (WAV file path, bytes, or BytesIO)
-response = service.verify_speaker(
-    audio_input="claimant_recording.wav",
-    user_id="user_alice_42",
-)
-
-# 4. Inspect verification outcome
-if response.status == VerificationStatus.MATCH:
-    print(f"[+] Verified! Score: {response.similarity_score:.4f} >= {verification_config.threshold_value}")
-else:
-    print(f"[-] Rejected! Score: {response.similarity_score:.4f} < {verification_config.threshold_value}")
-
-print(f"Processing Latency: {response.processing_time_ms} ms")
-print(f"Verification ID   : {response.verification_id}")
-```
-
----
-
-## 8. Research Evaluation Readiness
-
-The verification architecture is designed to support formal academic biometric evaluation protocols once human-speaker research datasets are acquired:
-
-- **Trial Generation:** Genuine trials ($H_0$: claimant is enrolled speaker) and Impostor trials ($H_1$: claimant is different speaker).
-- **Error Rates:**
-  - **False Acceptance Rate (FAR):** Fraction of impostor trials incorrectly classified as MATCH.
-  - **False Rejection Rate (FRR):** Fraction of genuine trials incorrectly classified as NO_MATCH.
-  - **Equal Error Rate (EER):** Operating threshold where $\text{FAR} = \text{FRR}$.
-- **Performance Curves:** Receiver Operating Characteristic (ROC), Detection Error Tradeoff (DET), and Area Under Curve (AUC).
-- **Protocol Boundary:** Synthetic audio is used strictly for functional software validation and pipeline regression testing. Real biometric performance figures must only be computed on human-speaker evaluation benchmarks with strictly separated development and evaluation splits.
