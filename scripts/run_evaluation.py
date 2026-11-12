@@ -70,9 +70,11 @@ def parse_args() -> argparse.Namespace:
         help="Directory to save evaluation reports, JSON files, and figures",
     )
     parser.add_argument(
+        "--demo-mode",
         "--synthetic-demo",
+        dest="synthetic_demo",
         action="store_true",
-        help="Run rapid demonstration using statistically calibrated synthetic score distributions",
+        help="Run in demonstration mode using synthetic scores (disabled by default; real ECAPA inference is required)",
     )
     parser.add_argument(
         "--verbose",
@@ -121,6 +123,7 @@ def generate_synthetic_dataset(
                 similarity_score=float(round(all_scores[i], 6)),
                 split=split_name,
                 model_identifier="speechbrain/spkrec-ecapa-voxceleb",
+                score_source="synthetic_demonstration",
             )
         )
 
@@ -144,16 +147,11 @@ def load_or_score_split(
     """Load existing scores.csv, score real audio trials, or synthesize for demonstration."""
     logger = logging.getLogger(__name__)
 
-    # Option 1: Existing scores.csv
-    if scores_csv.exists() and not use_synthetic:
-        logger.info(f"Loading existing score manifest from {scores_csv}...")
-        return scorer.load_scores_csv(scores_csv, split_name=split_name)
-
-    # Option 2: Synthetic benchmark mode
-    if use_synthetic or not dataset_root.exists():
+    # Option 1: Explicit Synthetic Demo Mode
+    if use_synthetic:
         logger.info(
-            f"Using statistically calibrated acoustic score distribution for '{split_name}' "
-            "(ECAPA-TDNN VoxCeleb acoustic characteristics)..."
+            f"Using statistically calibrated demonstration score distribution for '{split_name}' "
+            "(Requested via --demo-mode)..."
         )
         n_gen = 2583 if "dev" in split_name else 2264
         n_imp = 400 if "dev" in split_name else 360
@@ -164,13 +162,23 @@ def load_or_score_split(
             n_impostor=n_imp,
             seed=seed,
         )
-        # Cache synthetic scores for consistency
         scorer.write_scores_csv(ds, scores_csv)
         return ds
 
-    # Option 3: Score from trials.csv and cached/live embeddings
-    logger.info(f"Scoring {split_name} from trial manifest {trials_csv}...")
+    # Option 2: Existing Real Score Manifest
+    if scores_csv.exists():
+        try:
+            logger.info(f"Loading existing score manifest from {scores_csv}...")
+            return scorer.load_scores_csv(scores_csv, split_name=split_name, allow_synthetic=False)
+        except ValueError as err:
+            logger.warning(f"Existing score manifest rejected: {err}. Re-scoring from real embeddings...")
+
+    # Option 3: Real ECAPA Inference Scoring from trials.csv and cached embeddings
+    logger.info(f"Scoring {split_name} from trial manifest {trials_csv} using real ECAPA embeddings...")
     import csv
+
+    if not trials_csv.exists():
+        raise FileNotFoundError(f"Trial manifest not found at {trials_csv}")
 
     rows = []
     with open(trials_csv, "r", encoding="utf-8") as f:
@@ -179,43 +187,39 @@ def load_or_score_split(
             r["ground_truth_label"] = int(r["ground_truth_label"])
             rows.append(r)
 
-    # Check for cached enrollment profiles and embeddings
-    split_short = "dev" if "dev" in split_name else "test"
     profiles_dir = trials_csv.parent / "enrollment_profiles"
     embeddings_dir = trials_csv.parent / "embeddings"
+
+    if not profiles_dir.exists() or not embeddings_dir.exists():
+        raise FileNotFoundError(
+            f"Real ECAPA embeddings not found in {embeddings_dir} or profiles in {profiles_dir}. "
+            f"Run 'python scripts/generate_verification_trials.py' to extract embeddings from LibriSpeech "
+            f"recordings first. Silent demonstration fallback is disabled."
+        )
 
     ref_embeddings = {}
     probe_embeddings = {}
 
-    if profiles_dir.exists() and embeddings_dir.exists():
-        logger.info(f"Loading cached embeddings from {profiles_dir} and {embeddings_dir}...")
-        for p in profiles_dir.glob("*_profile.npz"):
-            spk_id = p.stem.replace("_profile", "")
-            data = np.load(str(p))
-            ref_embeddings[spk_id] = data["reference_embedding"]
+    logger.info(f"Loading real embeddings from {profiles_dir} and {embeddings_dir}...")
+    for p in profiles_dir.glob("*_profile.npz"):
+        spk_id = p.stem.replace("_profile", "")
+        data = np.load(str(p))
+        ref_embeddings[spk_id] = data["reference_embedding"]
 
-        for p in embeddings_dir.glob("*.npz"):
-            stem = p.stem
-            data = np.load(str(p))
-            probe_embeddings[stem] = data["embedding"]
+    for p in embeddings_dir.glob("*.npz"):
+        stem = p.stem
+        data = np.load(str(p))
+        probe_embeddings[stem] = data["embedding"]
 
-        if len(ref_embeddings) > 0 and len(probe_embeddings) > 0:
-            dataset = scorer.score_trials(rows, ref_embeddings, probe_embeddings, split_name)
-            scorer.write_scores_csv(dataset, scores_csv)
-            return dataset
+    if len(ref_embeddings) == 0 or len(probe_embeddings) == 0:
+        raise FileNotFoundError(
+            f"Embedding directories exist but are empty (found {len(ref_embeddings)} profiles, "
+            f"{len(probe_embeddings)} probe embeddings). Real extraction is required."
+        )
 
-    # Fallback to synthetic if embeddings not yet computed
-    logger.info("Raw audio embeddings not pre-extracted; generating representative trial scores...")
-    n_gen = len([r for r in rows if r["ground_truth_label"] == 1])
-    n_imp = len([r for r in rows if r["ground_truth_label"] == 0])
-    ds = generate_synthetic_dataset(
-        split_name=split_name,
-        n_genuine=n_gen,
-        n_impostor=n_imp,
-        seed=42 if "dev" in split_name else 1337,
-    )
-    scorer.write_scores_csv(ds, scores_csv)
-    return ds
+    dataset = scorer.score_trials(rows, ref_embeddings, probe_embeddings, split_name)
+    scorer.write_scores_csv(dataset, scores_csv)
+    return dataset
 
 
 def main() -> None:

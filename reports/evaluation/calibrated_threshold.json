@@ -1,17 +1,17 @@
 {
-  "threshold_value": 0.605697,
+  "threshold_value": 0.405898,
   "version": "librispeech-dev-clean-eer-v1.0",
   "calibration_dataset": "dev-clean",
-  "calibration_timestamp": "2026-11-12T06:26:42.361198+00:00",
+  "calibration_timestamp": "2026-11-12T15:19:45.609996+00:00",
   "model_identifier": "speechbrain/spkrec-ecapa-voxceleb",
   "scoring_metric": "cosine_similarity",
   "calibration_criterion": "equal_error_rate_minimization",
   "eer_metrics": {
-    "eer": 0.034069,
-    "eer_percent": 3.4069,
-    "eer_threshold": 0.605697,
-    "far_at_eer": 0.034069,
-    "frr_at_eer": 0.034069,
+    "eer": 0.011227,
+    "eer_percent": 1.1227,
+    "eer_threshold": 0.405898,
+    "far_at_eer": 0.011227,
+    "frr_at_eer": 0.011227,
     "method": "linear_interpolation"
   },
   "trial_counts": {
@@ -20,19 +20,19 @@
     "total_trials": 2983
   },
   "operating_metrics": {
-    "threshold": 0.605697,
-    "far": 0.035,
-    "frr": 0.034069,
-    "accuracy": 0.965806,
-    "precision": 0.99442,
-    "recall": 0.965931,
-    "specificity": 0.965,
-    "f1_score": 0.979969,
+    "threshold": 0.405898,
+    "far": 0.0125,
+    "frr": 0.011227,
+    "accuracy": 0.988602,
+    "precision": 0.998046,
+    "recall": 0.988773,
+    "specificity": 0.9875,
+    "f1_score": 0.993388,
     "confusion_matrix": {
-      "true_positives": 2495,
-      "false_negatives": 88,
-      "false_positives": 14,
-      "true_negatives": 386
+      "true_positives": 2554,
+      "false_negatives": 29,
+      "false_positives": 5,
+      "true_negatives": 395
     },
     "trial_counts": {
       "genuine_trials": 2583,
@@ -40,5 +40,5 @@
       "total_trials": 2983
     }
   },
-  "description": "Empirically calibrated decision threshold (0.6057) at Equal Error Rate (3.41%) on dev-clean. Frozen for independent test evaluation."
+  "description": "Empirically calibrated decision threshold (0.4059) at Equal Error Rate (1.12%) on dev-clean. Frozen for independent test evaluation."
 }

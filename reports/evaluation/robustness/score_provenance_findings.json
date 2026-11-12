@@ -1,0 +1,135 @@
+{
+  "audit_metadata": {
+    "audit_title": "SentinelAI Score Provenance and Research Validity Audit",
+    "audit_date": "2026-11-12T14:25:00Z",
+    "auditor": "Senior Speaker Recognition Researcher & ML Evaluation Auditor",
+    "repository": "sentinelai-voice-verification",
+    "scope": [
+      "outputs/evaluation/dev/scores.csv",
+      "outputs/evaluation/test/scores.csv",
+      "outputs/evaluation/dev/trials.csv",
+      "outputs/evaluation/test/trials.csv",
+      "scripts/run_evaluation.py",
+      "scripts/generate_verification_trials.py",
+      "reports/evaluation/calibrated_threshold.json",
+      "reports/evaluation/development_metrics.json",
+      "reports/evaluation/test_metrics.json",
+      "reports/evaluation/evaluation_report.md",
+      "reports/evaluation/robustness/robustness_report.md"
+    ]
+  },
+  "executive_verdict": {
+    "overall_score_provenance": "SYNTHETIC / DEMONSTRATION ONLY",
+    "dev_clean_metrics_status": "SYNTHETIC / DEMONSTRATION ONLY",
+    "test_clean_metrics_status": "SYNTHETIC / DEMONSTRATION ONLY",
+    "trial_manifests_status": "VERIFIED REAL LIBRISPEECH CORPUS",
+    "model_and_codebase_status": "VERIFIED REAL IMPLEMENTATION (Awaiting Real Pipeline Execution)",
+    "data_fabrication_intent": "NO (Documented demonstration fallback triggered by --skip-embedding-extraction)"
+  },
+  "task1_score_provenance_trace": {
+    "dev_scores_source": {
+      "path": "outputs/evaluation/dev/scores.csv",
+      "score_count": 2983,
+      "origin": "Option C: Synthetic score generation",
+      "source_file": "scripts/run_evaluation.py",
+      "source_function": "generate_synthetic_dataset",
+      "caller_function": "load_or_score_split (lines 207-218 fallback)",
+      "generation_mechanism": "NumPy PCG-64 Gaussian Generator (seed=42): Genuine ~ N(0.76, 0.08^2), Impostor ~ N(0.44, 0.09^2)",
+      "exact_match_with_generator": "2,983 out of 2,983 (100.0%, max abs diff = 0.0)"
+    },
+    "test_scores_source": {
+      "path": "outputs/evaluation/test/scores.csv",
+      "score_count": 2624,
+      "origin": "Option C: Synthetic score generation",
+      "source_file": "scripts/run_evaluation.py",
+      "source_function": "generate_synthetic_dataset",
+      "caller_function": "load_or_score_split (lines 207-218 fallback)",
+      "generation_mechanism": "NumPy PCG-64 Gaussian Generator (seed=1337): Genuine ~ N(0.76, 0.08^2), Impostor ~ N(0.44, 0.09^2)",
+      "exact_match_with_generator": "2,624 out of 2,624 (100.0%, max abs diff = 0.0)"
+    }
+  },
+  "task2_investigation_run_evaluation": {
+    "root_cause_chain": [
+      "1. In Phase 5B, scripts/generate_verification_trials.py was executed with the '--skip-embedding-extraction' CLI flag.",
+      "2. This generated valid trial manifests (dev/trials.csv and test/trials.csv) using real LibriSpeech audio paths, but intentionally bypassed neural network embedding extraction.",
+      "3. As a result, the directories 'outputs/evaluation/dev/embeddings', 'outputs/evaluation/dev/enrollment_profiles', 'outputs/evaluation/test/embeddings', and 'outputs/evaluation/test/enrollment_profiles' were never created on disk.",
+      "4. In Phase 5C, scripts/run_evaluation.py checked if cached embeddings existed (line 190). When found missing, it executed the fallback branch (line 208): 'Raw audio embeddings not pre-extracted; generating representative trial scores...'.",
+      "5. generate_synthetic_dataset() constructed ScoredTrial instances with synthetic trial IDs ('synth-dev-clean-00000', 'synth-test-clean-00000') and modulo-30 pseudo-speaker labels ('spk_{i % 30}').",
+      "6. The synthetic scores were cached to outputs/evaluation/{dev,test}/scores.csv for consistency.",
+      "7. Subsequent Phase 5C and Phase 5D scripts loaded these cached CSV files under Option 1 (line 148: 'if scores_csv.exists() ... load_scores_csv')."
+    ],
+    "pseudo_speaker_modulo_formula": {
+      "claimed_speaker": "f'spk_{i % 30}'",
+      "actual_speaker": "f'spk_{i % 30}' if is_gen else f'spk_{(i + 1) % 30}'"
+    }
+  },
+  "task3_embedding_verification": {
+    "cached_trial_embeddings_found": false,
+    "cached_enrollment_profiles_found": false,
+    "disk_npz_files_in_outputs": 0,
+    "physical_model_checkpoint_present": true,
+    "model_checkpoint_location": ".cache/sentinelai/ecapa_tdnn/embedding_model.ckpt (symlinked to HuggingFace hub cache: 83.3 MB)",
+    "dataset_flac_files_present": true,
+    "dev_clean_flac_count": 2703,
+    "test_clean_flac_count": 2372,
+    "total_flac_recordings": 5075,
+    "conclusion": "The pretrained model weights and LibriSpeech FLAC audio files are fully present on disk. However, embedding extraction was never executed for the trial manifests; zero vector dot products were computed for Phase 5C or 5D."
+  },
+  "task4_manifest_alignment_audit": {
+    "trial_id_intersection": {
+      "dev": 0,
+      "test": 0,
+      "explanation": "trials.csv uses real UUIDs (e.g., '1f68fa33-fe32-4638-a3d7-0b55b9d47410'), whereas scores.csv uses synthetic demo strings ('synth-test-clean-00000')."
+    },
+    "claimed_speaker_id_match": {
+      "trials_csv": "Real physical LibriSpeech speaker IDs (e.g., 1284, 1320, 1580; 40 in dev, 36 in test)",
+      "scores_csv": "Modulo pseudo-speaker labels (spk_0 through spk_29; 30 in dev, 30 in test)"
+    },
+    "recording_ids_presence": {
+      "trials_csv": "Explicit recording stems (e.g., '1284-1181-0004;1284-1181-0019;1284-134647-0002' for enrollment and '1284-1181-0003' for verification)",
+      "scores_csv": "Absent (columns omitted in scores.csv)"
+    },
+    "ground_truth_counts_alignment": {
+      "dev_genuine": 2583,
+      "dev_impostor": 400,
+      "test_genuine": 2264,
+      "test_impostor": 360,
+      "match": true
+    }
+  },
+  "task5_research_claim_classification": {
+    "phases": {
+      "phase_1_audio_preprocessing": "VERIFIED REAL IMPLEMENTATION",
+      "phase_2_ecapa_tdnn_integration": "VERIFIED REAL IMPLEMENTATION",
+      "phase_3_voice_enrollment": "VERIFIED REAL IMPLEMENTATION",
+      "phase_4_speaker_verification_engine": "VERIFIED REAL IMPLEMENTATION",
+      "phase_5a_librispeech_inspection": "VERIFIED REAL DATASET AUDIT (5,075 FLAC files inspected)",
+      "phase_5b_trial_manifest_generation": "VERIFIED REAL TRIAL GENERATION (trials.csv references real recordings)",
+      "phase_5c_threshold_calibration_and_metrics": "SYNTHETIC / DEMONSTRATION ONLY",
+      "phase_5d_statistical_validation_framework": "SYNTHETIC / DEMONSTRATION ONLY (Framework verified on synthetic distributions)"
+    },
+    "reported_metrics_provenance": {
+      "dev_threshold": "0.6057 (Calibrated on N(0.76, 0.08^2) and N(0.44, 0.09^2) synthetic scores)",
+      "dev_eer": "3.41% (Calculated from synthetic dev scores)",
+      "test_far": "1.94% (Calculated from synthetic test scores)",
+      "test_frr": "2.65% (Calculated from synthetic test scores)",
+      "test_eer": "2.47% (Calculated from synthetic test scores)",
+      "test_accuracy": "97.45% (Calculated from synthetic test scores)",
+      "test_roc_auc": "0.9976 (Calculated from synthetic test scores)"
+    }
+  },
+  "task6_corrective_action_plan": {
+    "status": "AWAITING_USER_APPROVAL",
+    "steps": [
+      "1. Execute BatchEmbedder across all 2,703 dev-clean and 2,372 test-clean LibriSpeech recordings using the local pretrained speechbrain/spkrec-ecapa-voxceleb model on CPU.",
+      "2. Cache extracted 192-dimensional embeddings as .npz files in 'outputs/evaluation/dev/embeddings' and 'outputs/evaluation/test/embeddings'.",
+      "3. Run aggregate_embeddings() on the 3 enrollment recordings per speaker to produce authentic speaker profiles in 'outputs/evaluation/{dev,test}/enrollment_profiles'.",
+      "4. Execute TrialScorer.score_trials() to calculate genuine cosine similarities between enrolled reference vectors and probe verification vectors, matching each row of trials.csv by trial_id.",
+      "5. Overwrite outputs/evaluation/{dev,test}/scores.csv with authentic scores carrying real trial UUIDs and LibriSpeech speaker IDs.",
+      "6. Re-run scripts/run_evaluation.py to calibrate real threshold theta* on genuine dev scores and evaluate frozen on genuine test scores.",
+      "7. Re-run scripts/run_robustness_analysis.py to execute 1,000-iteration speaker-cluster bootstrap on real scores across all 36 physical speakers."
+    ],
+    "estimated_runtime": "Approximately 20 to 25 minutes for 5,075 forward passes on CPU (~0.25s per utterance)."
+  }
+}
+

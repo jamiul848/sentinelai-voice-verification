@@ -1,16 +1,16 @@
 # SentinelAI Voice Verification — Phase 5C: Threshold Calibration & Performance Analysis
 
-**Report Generated:** `2026-11-12 06:26:47 UTC`  
+**Report Generated:** `2026-11-12 15:20:00 UTC`  
 **Pretrained Model:** `speechbrain/spkrec-ecapa-voxceleb`  
 **Scoring Metric:** `cosine_similarity` (Cosine Similarity in [-1.0, 1.0])  
-**Operating Decision Threshold (θ*):** `0.6057` (Calibrated on dev-clean)
+**Operating Decision Threshold (θ*):** `0.4059` (Calibrated on dev-clean)
 
 ---
 
 ## 1. Executive Summary & Calibration Protocol
 
 Phase 5C establishes an empirical benchmark evaluation and decision threshold calibration for the SentinelAI speaker recognition pipeline. In accordance with biometric evaluation standards:
-1. **Calibration:** Operating threshold $\theta^* = 0.6057$ was calibrated strictly on `dev-clean` by finding the point minimizing the difference between False Acceptance Rate (FAR) and False Rejection Rate (FRR) (Equal Error Rate operating point: 3.41%).
+1. **Calibration:** Operating threshold $\theta^* = 0.4059$ was calibrated strictly on `dev-clean` by finding the point minimizing the difference between False Acceptance Rate (FAR) and False Rejection Rate (FRR) (Equal Error Rate operating point: 1.12%).
 2. **Threshold Freezing:** The calibrated threshold was frozen into an immutable configuration without any hyperparameter tuning on the test partition.
 3. **Independent Evaluation:** The exact frozen threshold $\theta^*$ was subsequently evaluated on `test-clean` (2,624 trials across 2,264 genuine and 360 impostor comparisons), guaranteeing zero test-to-threshold data contamination.
 
@@ -21,37 +21,37 @@ Phase 5C establishes an empirical benchmark evaluation and decision threshold ca
 | Metric | Development Split (`dev-clean`) | Test Split (`test-clean`) | Generalization Gap (Δ) |
 | :--- | :---: | :---: | :---: |
 | **Calibration Status** | **Calibrated Operating Point** | **Frozen Evaluation (Unseen)** | — |
-| **Decision Threshold (θ)** | **0.6057** | **0.6057 (Frozen)** | 0.0000 |
+| **Decision Threshold (θ)** | **0.4059** | **0.4059 (Frozen)** | 0.0000 |
 | **Total Trials** | 2,983 | 2,624 | — |
 | **Genuine Trials** | 2,583 | 2,264 | — |
 | **Impostor Trials** | 400 | 360 | — |
-| **False Acceptance Rate (FAR)** | **3.50%** | **1.94%** | 1.56% |
-| **False Rejection Rate (FRR)** | **3.41%** | **2.65%** | 0.76% |
-| **Classification Accuracy** | 96.58% | 97.45% | 0.87% |
-| **Precision** | 99.44% | 99.68% | — |
-| **Recall (1 - FRR)** | 96.59% | 97.35% | — |
-| **F1-Score** | 0.9800 | 0.9850 | — |
-| **ROC-AUC** | **0.9954** | **0.9976** | 0.0022 |
-| **Equal Error Rate (EER)** | **3.41%** (Operating) | **2.47%** (Diagnostic only) | 0.93% |
+| **False Acceptance Rate (FAR)** | **1.25%** | **0.28%** | 0.97% |
+| **False Rejection Rate (FRR)** | **1.12%** | **1.02%** | 0.11% |
+| **Classification Accuracy** | 98.86% | 99.09% | 0.23% |
+| **Precision** | 99.80% | 99.96% | — |
+| **Recall (1 - FRR)** | 98.88% | 98.98% | — |
+| **F1-Score** | 0.9934 | 0.9947 | — |
+| **ROC-AUC** | **0.9995** | **0.9996** | 0.0001 |
+| **Equal Error Rate (EER)** | **1.12%** (Operating) | **0.56%** (Diagnostic only) | 0.57% |
 
 > [!IMPORTANT]
 > **Operational Error vs. Diagnostic EER:**
-> On `test-clean`, the operational error rates achieved by applying the frozen threshold $\theta^* = 0.6057$ are **FAR = 1.94%** and **FRR = 2.65%**. 
-> The test split's theoretical EER (2.47%) is reported strictly as an acoustic diagnostic metric; the threshold was not recalibrated to match test data.
+> On `test-clean`, the operational error rates achieved by applying the frozen threshold $\theta^* = 0.4059$ are **FAR = 0.28%** and **FRR = 1.02%**. 
+> The test split's theoretical EER (0.56%) is reported strictly as an acoustic diagnostic metric; the threshold was not recalibrated to match test data.
 
 ---
 
 ## 3. Confusion Matrix Breakdown at Operating Threshold
 
-### Decision Rule: $\text{Decision}(s) = \text{MATCH}$ if $s \ge 0.6057$, else $\text{NO\_MATCH}$
+### Decision Rule: $\text{Decision}(s) = \text{MATCH}$ if $s \ge 0.4059$, else $\text{NO\_MATCH}$
 
 #### Test Partition (`test-clean`):
 
 | True Condition | Predicted MATCH (1) | Predicted NO_MATCH (0) | Total |
 | :--- | :---: | :---: | :---: |
-| **Genuine Speaker** | **TP = 2,204** (97.3%) | **FN (FR) = 60** (2.65%) | 2,264 |
-| **Impostor Speaker** | **FP (FA) = 7** (1.94%) | **TN = 353** (98.1%) | 360 |
-| **Total** | 2,211 | 413 | **2,624** |
+| **Genuine Speaker** | **TP = 2,241** (99.0%) | **FN (FR) = 23** (1.02%) | 2,264 |
+| **Impostor Speaker** | **FP (FA) = 1** (0.28%) | **TN = 359** (99.7%) | 360 |
+| **Total** | 2,242 | 382 | **2,624** |
 
 ---
 

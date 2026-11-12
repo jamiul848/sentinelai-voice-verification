@@ -213,6 +213,43 @@ def process_split(
             if result.total_failed > 0:
                 for fail in result.failed_recordings:
                     logger.error(f"  Failed: {fail['path']} — {fail['error']}")
+                raise RuntimeError(
+                    f"[{split_name}] Failed to extract embeddings for {result.total_failed} recordings. "
+                    f"Aborting pipeline. Real evaluation requires 100% extraction success."
+                )
+
+            # Write embedding extraction manifest
+            manifest_dir = Path("reports/evaluation/real_inference")
+            manifest_dir.mkdir(parents=True, exist_ok=True)
+            manifest_csv = manifest_dir / f"embedding_manifest_{split_short}.csv"
+            import csv as csv_module
+            with open(manifest_csv, "w", newline="", encoding="utf-8") as f_man:
+                w = csv_module.DictWriter(
+                    f_man,
+                    fieldnames=[
+                        "recording_id",
+                        "speaker_id",
+                        "recording_path",
+                        "embedding_dimension",
+                        "audio_duration_sec",
+                        "extraction_time_sec",
+                        "model_identifier",
+                        "extraction_status",
+                    ],
+                )
+                w.writeheader()
+                for stem_id, entry in result.embeddings.items():
+                    w.writerow({
+                        "recording_id": stem_id,
+                        "speaker_id": entry.speaker_id,
+                        "recording_path": entry.recording_path,
+                        "embedding_dimension": entry.dimension,
+                        "audio_duration_sec": round(entry.audio_duration_sec, 3),
+                        "extraction_time_sec": round(entry.extraction_time_sec, 4),
+                        "model_identifier": entry.model_id,
+                        "extraction_status": "SUCCESS",
+                    })
+            logger.info(f"  Saved embedding extraction manifest to {manifest_csv}")
 
             # Step 3b: Aggregate enrollment embeddings into reference profiles
             logger.info("Step 3b: Aggregating enrollment embeddings into reference profiles...")
@@ -231,21 +268,26 @@ def process_split(
                     if entry is not None:
                         enroll_embeddings.append(entry.embedding)
 
-                if len(enroll_embeddings) == enrollment_count:
-                    agg_result = aggregate_embeddings(enroll_embeddings)
-                    np.savez(
-                        str(profiles_dir / f"{spk_id}_profile.npz"),
-                        reference_embedding=agg_result.reference_embedding,
-                        dimension=np.array(agg_result.dimension),
-                        sample_count=np.array(agg_result.sample_count),
-                        mean_pairwise_similarity=np.array(agg_result.mean_pairwise_similarity),
+                if len(enroll_embeddings) != enrollment_count:
+                    raise RuntimeError(
+                        f"[{split_name}] Speaker '{spk_id}' has {len(enroll_embeddings)}/{enrollment_count} "
+                        f"enrollment embeddings. Aborting profile aggregation."
                     )
 
-            logger.info(f"  Saved reference profiles to {profiles_dir}")
+                agg_result = aggregate_embeddings(enroll_embeddings)
+                np.savez(
+                    str(profiles_dir / f"{spk_id}_profile.npz"),
+                    reference_embedding=agg_result.reference_embedding,
+                    dimension=np.array(agg_result.dimension),
+                    sample_count=np.array(agg_result.sample_count),
+                    mean_pairwise_similarity=np.array(agg_result.mean_pairwise_similarity),
+                )
+
+            logger.info(f"  Saved {len(eligible)} reference profiles to {profiles_dir}")
 
         except Exception as exc:
             logger.error(f"  Embedding extraction failed: {exc}")
-            logger.info("  Continuing with trial structure generation...")
+            raise
     else:
         logger.info("Step 3: Skipping embedding extraction (--skip-embedding-extraction)")
 

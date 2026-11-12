@@ -27,6 +27,7 @@ from sentinelai.audio.exceptions import (
 )
 from sentinelai.audio.metrics import AudioMetrics, compute_audio_metrics
 from sentinelai.audio.validator import (
+    validate_audio_header,
     validate_audio_numeric,
     validate_duration,
     validate_signal_content,
@@ -146,9 +147,9 @@ class AudioPreprocessor:
             EmptyAudioFileError: If file or byte buffer is empty.
             AudioFileCorruptedError: If file header or audio data is malformed.
         """
-        # Validate container header if strict WAV format checking is enabled
+        # Validate container header if strict format checking is enabled
         if self.config.strict_wav_format:
-            validate_wav_header(source)
+            validate_audio_header(source, allowed_formats=self.config.supported_formats)
 
         audio: np.ndarray
         sr: int

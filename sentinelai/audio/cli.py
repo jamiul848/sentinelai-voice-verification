@@ -60,8 +60,8 @@ def main() -> None:
     parser.add_argument(
         "--max-duration",
         type=float,
-        default=30.0,
-        help="Maximum allowed duration in seconds (default: 30.0s).",
+        default=60.0,
+        help="Maximum allowed duration in seconds (default: 60.0s).",
     )
     parser.add_argument(
         "--demo-synthetic",

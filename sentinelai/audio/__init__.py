@@ -16,6 +16,7 @@ from sentinelai.audio.exceptions import (
 from sentinelai.audio.metrics import AudioMetrics, compute_audio_metrics
 from sentinelai.audio.preprocessor import AudioPreprocessingResult, AudioPreprocessor
 from sentinelai.audio.validator import (
+    validate_audio_header,
     validate_audio_numeric,
     validate_duration,
     validate_signal_content,
@@ -28,6 +29,7 @@ __all__ = [
     "AudioPreprocessor",
     "AudioMetrics",
     "compute_audio_metrics",
+    "validate_audio_header",
     "validate_wav_header",
     "validate_audio_numeric",
     "validate_duration",

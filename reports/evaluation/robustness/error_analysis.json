@@ -1,0 +1,303 @@
+{
+  "dataset_name": "test-clean",
+  "decision_threshold": 0.405898,
+  "total_trials": 2624,
+  "total_errors": 24,
+  "error_rate_percent": 0.91,
+  "false_rejections_count": 23,
+  "false_acceptances_count": 1,
+  "boundary_errors_count": 11,
+  "boundary_errors_percentage": 45.83,
+  "top_rejected_speakers": [
+    {
+      "speaker_id": "672",
+      "false_rejection_count": 6
+    },
+    {
+      "speaker_id": "4446",
+      "false_rejection_count": 4
+    },
+    {
+      "speaker_id": "260",
+      "false_rejection_count": 3
+    },
+    {
+      "speaker_id": "3729",
+      "false_rejection_count": 3
+    },
+    {
+      "speaker_id": "5142",
+      "false_rejection_count": 2
+    },
+    {
+      "speaker_id": "8555",
+      "false_rejection_count": 2
+    },
+    {
+      "speaker_id": "2830",
+      "false_rejection_count": 1
+    },
+    {
+      "speaker_id": "4970",
+      "false_rejection_count": 1
+    },
+    {
+      "speaker_id": "5683",
+      "false_rejection_count": 1
+    }
+  ],
+  "top_accepted_impostors": [
+    {
+      "speaker_id": "3570",
+      "false_acceptance_count": 1
+    }
+  ],
+  "score_proximity_stats": {
+    "mean_distance_to_threshold": 0.0692,
+    "min_distance_to_threshold": 0.0009,
+    "max_distance_to_threshold": 0.3325,
+    "median_distance_to_threshold": 0.0595
+  },
+  "sanitized_errors": [
+    {
+      "trial_id": "0c2e2574-9532-4826-8b11-2097ed2e45a6",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "260",
+      "actual_speaker_id": "260",
+      "similarity_score": 0.381453,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.024445,
+      "is_boundary_case": true
+    },
+    {
+      "trial_id": "54a6af0b-6eec-473e-8488-2e217fe93f41",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "260",
+      "actual_speaker_id": "260",
+      "similarity_score": 0.377401,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.028497,
+      "is_boundary_case": true
+    },
+    {
+      "trial_id": "a9260bcf-2301-4985-8624-720e04f24571",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "260",
+      "actual_speaker_id": "260",
+      "similarity_score": 0.333637,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.072261,
+      "is_boundary_case": false
+    },
+    {
+      "trial_id": "21068dcb-88d2-42b6-8120-30b37ec8bea2",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "2830",
+      "actual_speaker_id": "2830",
+      "similarity_score": 0.338223,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.067675,
+      "is_boundary_case": false
+    },
+    {
+      "trial_id": "de6662d2-1947-40ab-a4fe-dc763d182108",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "3729",
+      "actual_speaker_id": "3729",
+      "similarity_score": 0.318712,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.087186,
+      "is_boundary_case": false
+    },
+    {
+      "trial_id": "c13f511f-4171-46a6-9726-60ae672fb410",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "3729",
+      "actual_speaker_id": "3729",
+      "similarity_score": 0.365434,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.040464,
+      "is_boundary_case": true
+    },
+    {
+      "trial_id": "100f5293-659f-4595-9e4a-54407e52d4f0",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "3729",
+      "actual_speaker_id": "3729",
+      "similarity_score": 0.265841,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.140057,
+      "is_boundary_case": false
+    },
+    {
+      "trial_id": "06c48b39-a235-4eb8-b283-a537ce4cb385",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "4446",
+      "actual_speaker_id": "4446",
+      "similarity_score": 0.302925,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.102973,
+      "is_boundary_case": false
+    },
+    {
+      "trial_id": "8f730378-3261-4460-9b10-5d1df90d4ca8",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "4446",
+      "actual_speaker_id": "4446",
+      "similarity_score": 0.391826,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.014072,
+      "is_boundary_case": true
+    },
+    {
+      "trial_id": "3c46a4ed-fb12-4b36-8949-70d0c8a140a5",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "4446",
+      "actual_speaker_id": "4446",
+      "similarity_score": 0.323797,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.082101,
+      "is_boundary_case": false
+    },
+    {
+      "trial_id": "3e9f016f-6c93-4cab-85fb-b16c548d6c51",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "4446",
+      "actual_speaker_id": "4446",
+      "similarity_score": 0.345508,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.06039,
+      "is_boundary_case": false
+    },
+    {
+      "trial_id": "559d74d3-4e78-4030-a705-1630301f9f36",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "4970",
+      "actual_speaker_id": "4970",
+      "similarity_score": 0.347363,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.058535,
+      "is_boundary_case": false
+    },
+    {
+      "trial_id": "5ec5001a-c8bd-43ac-ab76-d452f0588285",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "5142",
+      "actual_speaker_id": "5142",
+      "similarity_score": 0.38302,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.022878,
+      "is_boundary_case": true
+    },
+    {
+      "trial_id": "c3d201b4-135d-402f-9d0d-d91bef119986",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "5142",
+      "actual_speaker_id": "5142",
+      "similarity_score": 0.398982,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.006916,
+      "is_boundary_case": true
+    },
+    {
+      "trial_id": "c2b237a4-9925-4e89-87fe-186ade10329d",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "5683",
+      "actual_speaker_id": "5683",
+      "similarity_score": 0.393898,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.012,
+      "is_boundary_case": true
+    },
+    {
+      "trial_id": "93d19d7e-10bc-4bc6-bcac-67c9dd2b494e",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "672",
+      "actual_speaker_id": "672",
+      "similarity_score": 0.335922,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.069976,
+      "is_boundary_case": false
+    },
+    {
+      "trial_id": "719ae822-d3fe-402c-b09e-65e373db1da3",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "672",
+      "actual_speaker_id": "672",
+      "similarity_score": 0.307511,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.098387,
+      "is_boundary_case": false
+    },
+    {
+      "trial_id": "df9cc95e-c1a0-4089-a8f2-bf9429acee07",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "672",
+      "actual_speaker_id": "672",
+      "similarity_score": 0.209172,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.196726,
+      "is_boundary_case": false
+    },
+    {
+      "trial_id": "bdcb0d72-4810-47f5-b463-e6a27a678574",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "672",
+      "actual_speaker_id": "672",
+      "similarity_score": 0.073372,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.332526,
+      "is_boundary_case": false
+    },
+    {
+      "trial_id": "cc3ade15-0c91-455f-b1e4-1039813beb48",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "672",
+      "actual_speaker_id": "672",
+      "similarity_score": 0.306233,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.099665,
+      "is_boundary_case": false
+    },
+    {
+      "trial_id": "dcef18a1-1f3f-4ab5-a34d-8458476645c8",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "672",
+      "actual_speaker_id": "672",
+      "similarity_score": 0.40266,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.003238,
+      "is_boundary_case": true
+    },
+    {
+      "trial_id": "23c795dc-5c46-4644-94d6-518206cbe2d6",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "8555",
+      "actual_speaker_id": "8555",
+      "similarity_score": 0.378951,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.026947,
+      "is_boundary_case": true
+    },
+    {
+      "trial_id": "0cf38f69-f70b-46ee-98c5-7cc2cff6b353",
+      "error_type": "false_rejection",
+      "claimed_speaker_id": "8555",
+      "actual_speaker_id": "8555",
+      "similarity_score": 0.393971,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.011927,
+      "is_boundary_case": true
+    },
+    {
+      "trial_id": "a64791cc-ac29-4af8-9673-e1d0216ee3c2",
+      "error_type": "false_acceptance",
+      "claimed_speaker_id": "2961",
+      "actual_speaker_id": "3570",
+      "similarity_score": 0.40675,
+      "decision_threshold": 0.405898,
+      "distance_to_threshold": 0.000852,
+      "is_boundary_case": true
+    }
+  ]
+}

@@ -31,6 +31,7 @@ class ScoredTrial:
         similarity_score: Cosine similarity in [-1.0, 1.0].
         split: Dataset split name (e.g. 'dev-clean').
         model_identifier: Model used for feature extraction.
+        score_source: Provenance metadata ('real_ecapa_inference' vs 'synthetic_demonstration').
     """
 
     trial_id: str
@@ -41,6 +42,7 @@ class ScoredTrial:
     similarity_score: float
     split: str
     model_identifier: str
+    score_source: str = "real_ecapa_inference"
 
 
 @dataclass
@@ -102,6 +104,7 @@ class TrialScorer:
         "similarity_score",
         "split",
         "model_identifier",
+        "score_source",
     ]
 
     def __init__(self, model_identifier: str = "speechbrain/spkrec-ecapa-voxceleb") -> None:
@@ -183,6 +186,7 @@ class TrialScorer:
                 similarity_score=round(score, 6),
                 split=split_name,
                 model_identifier=self.model_identifier,
+                score_source="real_ecapa_inference",
             )
 
             scored_trials.append(scored)
@@ -237,21 +241,32 @@ class TrialScorer:
                     "similarity_score": t.similarity_score,
                     "split": t.split,
                     "model_identifier": t.model_identifier,
+                    "score_source": getattr(t, "score_source", "real_ecapa_inference"),
                 }
                 writer.writerow(row)
 
         logger.info(f"Wrote {len(scored_dataset.trials)} scores to {output_path}")
         return output_path
 
-    def load_scores_csv(self, csv_path: Path, split_name: Optional[str] = None) -> ScoredDataset:
+    def load_scores_csv(
+        self,
+        csv_path: Path,
+        split_name: Optional[str] = None,
+        allow_synthetic: bool = False,
+    ) -> ScoredDataset:
         """Load previously scored trials from a CSV manifest into a ScoredDataset.
 
         Args:
             csv_path: Path to scores.csv.
             split_name: Optional split name override.
+            allow_synthetic: Whether to accept synthetic demonstration scores. Defaults to False.
 
         Returns:
             ScoredDataset instance.
+
+        Raises:
+            FileNotFoundError: If csv_path does not exist.
+            ValueError: If synthetic demonstration scores are detected when allow_synthetic is False.
         """
         csv_path = Path(csv_path)
         if not csv_path.exists():
@@ -266,10 +281,23 @@ class TrialScorer:
         with open(csv_path, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
+                trial_id = str(row["trial_id"])
+                score_source = row.get("score_source", "unknown")
+
+                # Stale synthetic score detection
+                if not allow_synthetic:
+                    if trial_id.startswith("synth-") or score_source == "synthetic_demonstration":
+                        raise ValueError(
+                            f"Stale synthetic score manifest detected at {csv_path} (trial_id={trial_id!r}, "
+                            f"score_source={score_source!r}). Real benchmark execution requires genuine "
+                            f"ECAPA-TDNN inference. Set allow_synthetic=True or --demo-mode if demonstration scores "
+                            f"are explicitly intended."
+                        )
+
                 score = float(row["similarity_score"])
                 label = int(row["ground_truth_label"])
                 trial = ScoredTrial(
-                    trial_id=row["trial_id"],
+                    trial_id=trial_id,
                     claimed_speaker_id=row["claimed_speaker_id"],
                     actual_speaker_id=row["actual_speaker_id"],
                     trial_type=row["trial_type"],
@@ -277,6 +305,7 @@ class TrialScorer:
                     similarity_score=score,
                     split=row.get("split", detected_split),
                     model_identifier=row.get("model_identifier", detected_model),
+                    score_source=score_source,
                 )
                 scored_trials.append(trial)
                 score_list.append(score)
