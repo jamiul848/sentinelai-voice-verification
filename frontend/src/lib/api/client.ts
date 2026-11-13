@@ -4,9 +4,9 @@ import { ApiError } from "@/types";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
 /**
- * Generate lightweight UUID for request correlation tracing.
+ * Generate lightweight UUID for request correlation tracing (X-Request-ID).
  */
-function generateCorrelationId(): string {
+function generateRequestId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
@@ -14,29 +14,56 @@ function generateCorrelationId(): string {
 }
 
 /**
+ * Extract cookie value by name from document.cookie in browser context.
+ */
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp("(^|;\\s*)(" + name + ")=([^;]*)"));
+  return match ? decodeURIComponent(match[3]) : null;
+}
+
+/**
  * Core Axios client for Sentinel Voice API.
+ * Standardized on credentials support (HttpOnly refresh cookies) and X-Request-ID tracing.
  */
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000, // 30s timeout for model inference requests
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Request Interceptor: Attach Auth & Tracing
+// Request Interceptor: Attach Tracing, JWT Access Token & CSRF Protection
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // 1. Attach Request Correlation ID
-    if (!config.headers["X-Correlation-ID"]) {
-      config.headers["X-Correlation-ID"] = generateCorrelationId();
+    // 1. Attach Standardized X-Request-ID correlation header
+    if (!config.headers["X-Request-ID"]) {
+      config.headers["X-Request-ID"] = generateRequestId();
     }
 
-    // 2. Attach JWT Access Token from local storage / cookie
+    // 2. Attach JWT Access Token from sessionStorage or localStorage
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("sentinel_access_token");
+      const token =
+        sessionStorage.getItem("sentinel_access_token") ||
+        localStorage.getItem("sentinel_access_token");
       if (token && !config.headers["Authorization"]) {
         config.headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      // 3. Attach Double-Submit CSRF Token on state-mutating requests
+      const method = config.method?.toUpperCase();
+      if (method && ["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+        const csrfToken = getCookie("sentinel_csrf_token");
+        if (csrfToken && !config.headers["X-CSRF-Token"]) {
+          config.headers["X-CSRF-Token"] = csrfToken;
+        }
+      }
+
+      // 4. For FormData (multipart uploads), delete default Content-Type so browser generates multipart boundary
+      if (config.data instanceof FormData) {
+        delete config.headers["Content-Type"];
       }
     }
 
@@ -69,7 +96,13 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
     // Handle 401 Unauthorized with token refresh rotation
-    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes("/auth/")) {
+    // Avoid re-invoking refresh on auth endpoints to prevent infinite refresh loops
+    const isAuthRoute =
+      originalRequest.url?.includes("/auth/login") ||
+      originalRequest.url?.includes("/auth/register") ||
+      originalRequest.url?.includes("/auth/refresh");
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRoute) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -85,24 +118,39 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = typeof window !== "undefined" ? localStorage.getItem("sentinel_refresh_token") : null;
-        if (!refreshToken) {
-          throw new Error("No refresh token available");
-        }
+        // Backend reads HttpOnly cookie sentinel_refresh_token when withCredentials: true.
+        // Fallback to in-memory/sessionStorage token if present in payload.
+        const fallbackRefreshToken =
+          typeof window !== "undefined"
+            ? sessionStorage.getItem("sentinel_refresh_fallback") ||
+              localStorage.getItem("sentinel_refresh_fallback")
+            : null;
+
+        const refreshPayload = fallbackRefreshToken ? { refresh_token: fallbackRefreshToken } : {};
 
         const refreshRes = await axios.post(
           `${API_BASE_URL}/api/v1/auth/refresh`,
-          { refresh_token: refreshToken },
-          { headers: { "Content-Type": "application/json" } }
+          refreshPayload,
+          {
+            withCredentials: true,
+            headers: {
+              "Content-Type": "application/json",
+              "X-Request-ID": generateRequestId(),
+            },
+          }
         );
 
-        const newAccessToken = refreshRes.data.access_token || refreshRes.data.data?.access_token;
-        const newRefreshToken = refreshRes.data.refresh_token || refreshRes.data.data?.refresh_token;
+        const newAccessToken =
+          refreshRes.data.access_token ||
+          refreshRes.data.data?.access_token;
+        const newRefreshToken =
+          refreshRes.data.refresh_token ||
+          refreshRes.data.data?.refresh_token;
 
         if (typeof window !== "undefined") {
-          localStorage.setItem("sentinel_access_token", newAccessToken);
+          sessionStorage.setItem("sentinel_access_token", newAccessToken);
           if (newRefreshToken) {
-            localStorage.setItem("sentinel_refresh_token", newRefreshToken);
+            sessionStorage.setItem("sentinel_refresh_fallback", newRefreshToken);
           }
         }
 
@@ -112,10 +160,11 @@ apiClient.interceptors.response.use(
       } catch (refreshErr) {
         processQueue(refreshErr, null);
         if (typeof window !== "undefined") {
+          sessionStorage.removeItem("sentinel_access_token");
+          sessionStorage.removeItem("sentinel_refresh_fallback");
+          sessionStorage.removeItem("sentinel_user");
           localStorage.removeItem("sentinel_access_token");
-          localStorage.removeItem("sentinel_refresh_token");
           localStorage.removeItem("sentinel_user");
-          // Optionally trigger logout event
           window.dispatchEvent(new Event("sentinel:logout"));
         }
         return Promise.reject(refreshErr);
@@ -132,7 +181,7 @@ apiClient.interceptors.response.use(
       if (typeof errorData.detail === "string") {
         extractedMessage = errorData.detail;
       } else if (Array.isArray(errorData.detail)) {
-        extractedMessage = errorData.detail.map((d: any) => d.msg).join(", ");
+        extractedMessage = errorData.detail.map((d: any) => d.msg || JSON.stringify(d)).join(", ");
       } else if (errorData.message) {
         extractedMessage = errorData.message;
       }
@@ -153,4 +202,3 @@ apiClient.interceptors.response.use(
     return Promise.reject(enhancedError);
   }
 );
-

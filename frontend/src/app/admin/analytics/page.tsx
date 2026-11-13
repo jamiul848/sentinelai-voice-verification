@@ -1,4 +1,4 @@
-i"use client";
+"use client";
 
 import React from "react";
 import { useDemoStore } from "@/store/useDemoStore";

@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { authService } from "@/lib/api/services/auth.service";
+import { useAuthStore } from "@/store/useAuthStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,9 +38,18 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // If already authenticated, redirect to appropriate dashboard
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user) {
+      const hasAdminRole = user.roles?.some((r) => r === "ADMIN" || r === "SUPER_ADMIN");
+      router.replace(hasAdminRole ? "/admin/dashboard" : "/dashboard");
+    }
+  }, [isLoading, isAuthenticated, user, router]);
 
   const {
     register,
@@ -164,24 +174,19 @@ export default function RegisterPage() {
                   </button>
                 </div>
 
-                {/* Password Strength Checklist */}
-                <div className="pt-2 grid grid-cols-2 gap-1 text-[11px]">
-                  {rules.map((rule, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex items-center gap-1.5 ${
-                        rule.met ? "text-emerald-400 font-medium" : "text-slate-400"
+                {/* Password strength badge hints */}
+                <div className="pt-2 flex flex-wrap gap-1.5">
+                  {rules.map((r, i) => (
+                    <span
+                      key={i}
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors ${
+                        r.met
+                          ? "bg-emerald-950/70 border border-emerald-800 text-emerald-400"
+                          : "bg-slate-800 text-slate-500 border border-slate-700/60"
                       }`}
                     >
-                      <span
-                        className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${
-                          rule.met ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-800 text-slate-500"
-                        }`}
-                      >
-                        ✓
-                      </span>
-                      <span>{rule.label}</span>
-                    </div>
+                      {r.label}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -192,39 +197,33 @@ export default function RegisterPage() {
                   Confirm Password
                 </label>
                 <Input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="••••••••••••"
                   {...register("password_confirm")}
                   error={errors.password_confirm?.message}
                 />
               </div>
 
-              {/* Biometric Privacy Terms Acceptance */}
-              <div className="pt-2">
+              <div className="pt-2 space-y-1">
                 <label className="flex items-start gap-2.5 cursor-pointer">
                   <input
                     type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                    className="mt-0.5 rounded border-slate-700 bg-slate-950 text-blue-600 focus:ring-blue-500"
                     {...register("accept_privacy_terms")}
                   />
-                  <span className="text-xs text-slate-400 leading-relaxed">
-                    I accept the{" "}
-                    <span className="text-blue-400 font-medium hover:underline">
-                      Biometric Privacy Policy & Terms
-                    </span>
-                    . I understand voice recordings are used solely for ECAPA-TDNN feature extraction and encrypted vector comparison (GDPR / BIPA).
+                  <span className="text-[11px] text-slate-400 leading-snug">
+                    I consent to the capture, 192D neural embedding transformation, and AES-256-GCM envelope
+                    encryption of my voice acoustic vectors under GDPR & Illinois BIPA compliance rules.
                   </span>
                 </label>
                 {errors.accept_privacy_terms && (
-                  <p className="mt-1 text-xs text-red-400 font-medium">
-                    {errors.accept_privacy_terms.message}
-                  </p>
+                  <p className="text-[11px] text-red-400 pl-6">{errors.accept_privacy_terms.message}</p>
                 )}
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 mt-2"
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 mt-3"
                 isLoading={isSubmitting}
               >
                 Create Account

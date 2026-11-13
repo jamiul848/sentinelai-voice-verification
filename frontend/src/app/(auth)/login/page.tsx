@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -20,12 +20,24 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
-  const setAuth = useAuthStore((s) => s.setAuth);
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get("redirect");
+
+  const { isAuthenticated, isLoading, user, setAuth } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [retryAfter, setRetryAfter] = useState<number | null>(null);
+
+  // If already logged in, redirect away from auth page
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user) {
+      const hasAdminRole = user.roles?.some((r) => r === "ADMIN" || r === "SUPER_ADMIN");
+      const target = redirectParam || (hasAdminRole ? "/admin/dashboard" : "/dashboard");
+      router.replace(target);
+    }
+  }, [isLoading, isAuthenticated, user, redirectParam, router]);
 
   const {
     register,
@@ -46,7 +58,12 @@ export default function LoginPage() {
     try {
       const data = await authService.login(values);
       setAuth(data.user, data.access_token, data.refresh_token);
-      router.push("/dashboard");
+
+      const hasAdminRole = data.user?.roles?.some(
+        (r) => r === "ADMIN" || r === "SUPER_ADMIN"
+      );
+      const targetDestination = redirectParam || (hasAdminRole ? "/admin/dashboard" : "/dashboard");
+      router.push(targetDestination);
     } catch (err: any) {
       if (err.status === 429 && err.retryAfter) {
         setRetryAfter(err.retryAfter);
@@ -154,3 +171,16 @@ export default function LoginPage() {
   );
 }
 
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-500 text-xs font-mono">
+          Loading login portal...
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
+  );
+}

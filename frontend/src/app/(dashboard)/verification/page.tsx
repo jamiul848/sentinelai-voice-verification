@@ -1,10 +1,10 @@
- "use client";
+"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { biometricsService } from "@/lib/api/services/biometrics.service";
 import { useDemoStore } from "@/store/useDemoStore";
 import { AudioRecorder } from "@/components/voice/AudioRecorder";
+import { useConsentStatus, useVerifyVoice, useVoiceProfile } from "@/hooks/useBiometrics";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,8 @@ import {
   AlertCircle,
   ArrowRight,
   CheckCircle2,
+  FileCheck,
+  Mic,
   RotateCcw,
   ShieldAlert,
   ShieldCheck,
@@ -22,9 +24,11 @@ import {
 
 export default function VerificationPage() {
   const isDemoMode = useDemoStore((s) => s.isDemoMode);
+  const { data: profile, isLoading: isProfileLoading } = useVoiceProfile();
+  const { data: consent, isLoading: isConsentLoading } = useConsentStatus();
+  const verifyMutation = useVerifyVoice();
 
   const [probeFile, setProbeFile] = useState<File | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
   const [result, setResult] = useState<VerificationResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -34,46 +38,29 @@ export default function VerificationPage() {
     setErrorMsg(null);
   };
 
+  const handleProbeReset = () => {
+    setProbeFile(null);
+    setResult(null);
+    setErrorMsg(null);
+  };
+
   const handleExecuteVerification = async () => {
     if (!probeFile) {
-      setErrorMsg("Please record an audio probe before submitting for verification.");
+      setErrorMsg("Please record a spoken voice sample before initiating verification.");
       return;
     }
 
-    setIsVerifying(true);
     setErrorMsg(null);
     setResult(null);
 
     try {
-      if (isDemoMode) {
-        // Simulated verification for UI review
-        setTimeout(() => {
-          setResult({
-            verification_id: "demo-verif-" + Date.now(),
-            decision: "MATCH",
-            is_match: true,
-            similarity_score: 0.887451,
-            applied_threshold: 0.405898,
-            processing_time_ms: 1240.5,
-            model_identifier: "speechbrain/spkrec-ecapa-voxceleb",
-            threshold_version: "v1.0.0-eer-calibrated",
-            threshold_id: "77a80b12-9c31-4e78-8380-49658ec3429a",
-            timestamp: new Date().toISOString(),
-          });
-          setIsVerifying(false);
-        }, 1500);
-        return;
-      }
-
-      const response = await biometricsService.verifyVoice(probeFile);
+      const response = await verifyMutation.mutateAsync({ file: probeFile });
       setResult(response);
     } catch (err: any) {
       setErrorMsg(
         err.message ||
-          "Verification service encountered an error. Confirm your voice profile is enrolled."
+          "Verification service failed. Confirm your voice profile is active and audio quality is adequate."
       );
-    } finally {
-      setIsVerifying(false);
     }
   };
 
@@ -82,6 +69,10 @@ export default function VerificationPage() {
     setResult(null);
     setErrorMsg(null);
   };
+
+  const isCheckingPrerequisites = isProfileLoading || isConsentLoading;
+  const hasActiveConsent = consent?.has_active_consent ?? false;
+  const isProfileActive = profile?.status === "ACTIVE";
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -96,7 +87,7 @@ export default function VerificationPage() {
           )}
         </div>
         <p className="text-xs sm:text-sm text-slate-400">
-          Provide a live acoustic voice probe to confirm claimant identity against the reference voiceprint.
+          Record a short voice sample to verify your identity against your enrolled voice profile.
         </p>
       </div>
 
@@ -112,26 +103,81 @@ export default function VerificationPage() {
         </div>
       )}
 
-      {/* Recording Stage */}
-      {!result && (
+      {/* Prerequisite Check: Missing Profile */}
+      {!isCheckingPrerequisites && !isProfileActive && !isDemoMode && (
+        <Card className="border-amber-800/60 bg-slate-900/90 shadow-2xl">
+          <CardHeader>
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 mb-2">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <CardTitle className="text-lg font-bold text-white">Active Voice Profile Required</CardTitle>
+            <CardDescription className="text-xs text-slate-400">
+              Identity verification performs a 1:1 biometric comparison against a registered reference voiceprint.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {profile?.status === "REVOKED"
+                ? "Your voice profile has been revoked and its biometric vector shredded. Verification is blocked until you re-enroll."
+                : "No active voice profile was found for your account. Please complete enrollment by providing three reference speech samples."}
+            </p>
+            <div className="pt-2">
+              <Link href="/enrollment">
+                <Button className="bg-blue-600 hover:bg-blue-500 text-white gap-2 text-xs font-semibold px-6">
+                  <Mic className="w-4 h-4" />
+                  <span>{profile?.status === "REVOKED" ? "Re-enroll Voice" : "Begin Voice Enrollment"}</span>
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Prerequisite Check: Missing Consent */}
+      {!isCheckingPrerequisites && isProfileActive && !hasActiveConsent && !isDemoMode && (
+        <Card className="border-blue-800/60 bg-slate-900/90 shadow-2xl">
+          <CardHeader>
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 mb-2">
+              <FileCheck className="w-5 h-5" />
+            </div>
+            <CardTitle className="text-lg font-bold text-white">Biometric Consent Needed</CardTitle>
+            <CardDescription className="text-xs text-slate-400">
+              Under GDPR and BIPA requirements, active legal authorization is required before processing acoustic biometric vectors.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <Link href="/enrollment">
+              <Button className="bg-blue-600 hover:bg-blue-500 text-white gap-2 text-xs font-semibold px-6">
+                <span>Review & Authorize Consent</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recording Stage (Permitted when profile is active and consent granted, or demo mode) */}
+      {(isProfileActive || isDemoMode) && (hasActiveConsent || isDemoMode) && !result && (
         <Card className="border-slate-800 bg-slate-900/90 shadow-2xl">
           <CardHeader>
             <CardTitle className="text-base font-semibold text-white">Live Voice Probe</CardTitle>
             <CardDescription className="text-xs text-slate-400">
-              Speak clearly into your microphone for at least 3 seconds. The audio is streamed to the neural engine in memory and never persisted permanently.
+              Speak clearly into your microphone for at least 1 second. The acoustic probe is evaluated in memory and never stored permanently.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <AudioRecorder
               sampleLabel="Verification Probe Utterance"
-              minDurationSec={3}
+              minDurationSec={1.0}
+              maxDurationSec={60.0}
               onRecordingComplete={handleProbeRecorded}
+              onRecordingReset={handleProbeReset}
             />
 
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
               <div className="text-xs text-slate-400">
                 {probeFile ? (
-                  <span className="text-emerald-400 font-medium flex items-center gap-1">
+                  <span className="text-emerald-400 font-medium flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5" /> Probe captured ({probeFile.name})
                   </span>
                 ) : (
@@ -141,12 +187,12 @@ export default function VerificationPage() {
 
               <Button
                 onClick={handleExecuteVerification}
-                disabled={!probeFile || isVerifying}
-                isLoading={isVerifying}
-                className="bg-blue-600 hover:bg-blue-500 text-white gap-2 text-xs font-semibold px-6 shadow-sm"
+                disabled={!probeFile || verifyMutation.isPending}
+                isLoading={verifyMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-500 text-white gap-2 text-xs font-semibold px-6 shadow-sm w-full sm:w-auto"
               >
                 <ShieldCheck className="w-4 h-4" />
-                <span>Execute 1:1 Verification</span>
+                <span>Verify Voiceprint</span>
               </Button>
             </div>
           </CardContent>
@@ -188,12 +234,12 @@ export default function VerificationPage() {
                     result.decision === "MATCH" ? "text-emerald-400" : "text-red-400"
                   }`}
                 >
-                  {result.decision === "MATCH" ? "AUTHENTIC MATCH" : "IMPOSTOR / NO MATCH"}
+                  {result.decision === "MATCH" ? "AUTHENTIC MATCH" : "NO MATCH / IMPOSTOR REJECTED"}
                 </h2>
                 <p className="text-xs text-slate-400 max-w-md mx-auto pt-1">
                   {result.decision === "MATCH"
                     ? "Claimant voice embedding meets calibrated similarity criteria against the enrolled reference profile."
-                    : "Voice sample similarity score fell below the calibrated threshold. Claimant identity could not be verified."}
+                    : "Observed cosine similarity score fell below the active operating threshold. Identity could not be verified."}
                 </p>
               </div>
 
@@ -225,16 +271,16 @@ export default function VerificationPage() {
                 </div>
 
                 <div>
-                  <span className="text-slate-400">Calibration Tag</span>
+                  <span className="text-slate-400">Threshold Version</span>
                   <p className="font-mono text-xs font-semibold text-slate-300 mt-2 truncate">
-                    {result.threshold_version || "Default-EER"}
+                    {result.threshold_version || "Default"}
                   </p>
                 </div>
               </div>
 
               {/* Audit Event Reference */}
               <div className="text-[11px] text-slate-500 font-mono">
-                Transaction UUID: {result.verification_id} • Executed: {formatDateTime(result.timestamp)}
+                Transaction ID: {result.verification_id} • Executed: {formatDateTime(result.timestamp)}
               </div>
 
               {/* Action Buttons */}

@@ -3,16 +3,18 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { consentService } from "@/lib/api/services/consent.service";
-import { biometricsService } from "@/lib/api/services/biometrics.service";
 import { useDemoStore } from "@/store/useDemoStore";
 import { AudioRecorder } from "@/components/voice/AudioRecorder";
+import { useEnrollVoice, useVoiceProfile } from "@/hooks/useBiometrics";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EnrollmentResponse } from "@/types";
 import {
   AlertCircle,
   ArrowRight,
   FileCheck,
+  Info,
   Lock,
   ShieldCheck,
   Sparkles,
@@ -21,17 +23,18 @@ import {
 
 export default function EnrollmentPage() {
   const isDemoMode = useDemoStore((s) => s.isDemoMode);
+  const { data: existingProfile, isLoading: isCheckingProfile } = useVoiceProfile();
+  const enrollMutation = useEnrollVoice();
 
-  // Stepper state: 1: Consent -> 2: Record Samples -> 3: Complete
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  // Workflow steps: 1: Introduction & Consent -> 2: Record 3 Samples -> 3: Review & Submit -> 4: Complete
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [_hasConsent, setHasConsent] = useState(false);
   const [isGrantingConsent, setIsGrantingConsent] = useState(false);
 
-  // Audio files: Backend requires at least 3 audio recordings
-  const [recordedFiles, setRecordedFiles] = useState<File[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Audio sample slots (minimum 3 required)
+  const [recordedSamples, setRecordedSamples] = useState<(File | null)[]>([null, null, null]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [enrollmentResult, setEnrollmentResult] = useState<any | null>(null);
+  const [enrollmentResult, setEnrollmentResult] = useState<EnrollmentResponse | null>(null);
 
   // Check consent status on mount
   useEffect(() => {
@@ -48,7 +51,6 @@ export default function EnrollmentPage() {
           setStep(2);
         }
       } catch {
-        // If 404 or ungranted, remain on step 1
         setHasConsent(false);
       }
     }
@@ -75,49 +77,46 @@ export default function EnrollmentPage() {
   };
 
   const handleSampleRecorded = (index: number, file: File) => {
-    setRecordedFiles((prev) => {
-      const next = [...prev];
-      next[index] = file;
-      return next;
+    setRecordedSamples((prev) => {
+      const updated = [...prev];
+      updated[index] = file;
+      return updated;
+    });
+    setErrorMsg(null);
+  };
+
+  const handleSampleReset = (index: number) => {
+    setRecordedSamples((prev) => {
+      const updated = [...prev];
+      updated[index] = null;
+      return updated;
     });
   };
 
+  const validSamples = recordedSamples.filter((s): s is File => s !== null);
+  const allSamplesCaptured = validSamples.length >= 3;
+
   const handleSubmitEnrollment = async () => {
-    if (recordedFiles.filter(Boolean).length < 3) {
-      setErrorMsg("Please record all 3 required speech samples before submitting.");
+    if (validSamples.length < 3) {
+      setErrorMsg("Enrollment requires all 3 distinct speech samples. Please complete missing recordings.");
       return;
     }
 
     setErrorMsg(null);
-    setIsSubmitting(true);
 
     try {
-      if (isDemoMode) {
-        // Simulated enrollment response for demo inspection
-        setTimeout(() => {
-          setEnrollmentResult({
-            profile_id: "demo-prof-" + Date.now(),
-            sample_count: 3,
-            mean_pairwise_similarity: 0.892,
-            model_identifier: "speechbrain/spkrec-ecapa-voxceleb",
-            status: "ACTIVE",
-          });
-          setStep(3);
-          setIsSubmitting(false);
-        }, 1200);
-        return;
-      }
-
-      const res = await biometricsService.enrollVoice(
-        recordedFiles.filter(Boolean),
-        "SentinelVoice Web Client (W3C Audio)"
-      );
+      const res = await enrollMutation.mutateAsync({
+        files: validSamples,
+        deviceInfo: "SentinelVoice W3C Web Audio Client",
+      });
       setEnrollmentResult(res);
-      setStep(3);
+      setStep(4);
+      // Clean up temporary audio references from memory
+      setRecordedSamples([null, null, null]);
     } catch (err: any) {
-      setErrorMsg(err.message || "Voice enrollment failed. Please re-record your samples.");
-    } finally {
-      setIsSubmitting(false);
+      setErrorMsg(
+        err.message || "Voiceprint enrollment failed. Verify audio quality and try again."
+      );
     }
   };
 
@@ -134,11 +133,35 @@ export default function EnrollmentPage() {
           )}
         </div>
         <p className="text-xs sm:text-sm text-slate-400">
-          Enroll your acoustic reference model using three high-fidelity speech recordings.
+          Create your cryptographic voice template using 3 distinct speech recordings for ECAPA-TDNN centroid extraction.
         </p>
       </div>
 
-      {/* Stepper Progress */}
+      {/* Existing Active Profile Warning Banner */}
+      {!isCheckingProfile && existingProfile && existingProfile.status === "ACTIVE" && step !== 4 && (
+        <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-300 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Info className="w-4 h-4 flex-shrink-0 text-amber-400" />
+            <span>
+              You already have an active voice profile (UUID: {existingProfile.id}). Submitting new enrollment will be rejected unless you re-enroll or revoke.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/profile">
+              <Button size="sm" variant="outline" className="text-xs border-amber-600/50 text-amber-300">
+                Manage Profile
+              </Button>
+            </Link>
+            <Link href="/verification">
+              <Button size="sm" className="bg-amber-600 hover:bg-amber-500 text-black font-semibold text-xs">
+                Go to Verification
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Stepper Progress Indicator */}
       <div className="grid grid-cols-3 gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-medium">
         <div
           className={`flex items-center justify-center gap-2 py-2 rounded-lg transition-colors ${
@@ -152,23 +175,23 @@ export default function EnrollmentPage() {
         </div>
         <div
           className={`flex items-center justify-center gap-2 py-2 rounded-lg transition-colors ${
-            step >= 2 ? "bg-blue-600/20 text-blue-300 border border-blue-500/30" : "text-slate-500"
+            step >= 2 && step <= 3 ? "bg-blue-600/20 text-blue-300 border border-blue-500/30" : "text-slate-500"
           }`}
         >
           <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
             2
           </span>
-          <span>Record (3 Samples)</span>
+          <span>Capture 3 Samples</span>
         </div>
         <div
           className={`flex items-center justify-center gap-2 py-2 rounded-lg transition-colors ${
-            step === 3 ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30" : "text-slate-500"
+            step === 4 ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30" : "text-slate-500"
           }`}
         >
           <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">
             3
           </span>
-          <span>Verification Ready</span>
+          <span>Profile Created</span>
         </div>
       </div>
 
@@ -179,28 +202,33 @@ export default function EnrollmentPage() {
         </div>
       )}
 
-      {/* STEP 1: Consent Confirmation */}
+      {/* STEP 1: Introduction & Legal Biometric Consent */}
       {step === 1 && (
         <Card className="border-slate-800 bg-slate-900/90 shadow-2xl">
           <CardHeader>
             <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 mb-2">
               <FileCheck className="w-5 h-5" />
             </div>
-            <CardTitle className="text-lg font-bold text-white">Biometric Processing Consent</CardTitle>
+            <CardTitle className="text-lg font-bold text-white">Biometric Processing Consent & Disclosure</CardTitle>
             <CardDescription className="text-xs text-slate-400">
-              In compliance with international data privacy laws (GDPR Art. 9, Illinois BIPA, and NIST guidelines).
+              In accordance with international privacy legislation (GDPR Art. 9, Illinois BIPA, and NIST SP 800-88 guidelines).
             </CardDescription>
           </CardHeader>
+
           <CardContent className="space-y-4">
             <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3 text-xs text-slate-300 leading-relaxed">
-              <p>
-                To provide speaker verification capabilities, Sentinel Voice processes your voice recordings to generate a 192-dimensional numerical embedding vector.
+              <p className="font-semibold text-white">
+                Create your secure voice profile.
               </p>
-              <ul className="list-disc pl-5 space-y-1 text-slate-400">
-                <li>Recordings are analyzed using pretrained ECAPA-TDNN neural networks.</li>
-                <li>Biometric embeddings are encrypted with AES-256-GCM envelope cryptography.</li>
-                <li>Your voiceprint is strictly used for 1:1 identity verification when requested by you.</li>
-                <li>You maintain the permanent right to delete and cryptographically shred your profile (NIST SP 800-88).</li>
+              <p>
+                Speaker verification analyzes acoustic biometric patterns in your speech to authenticate your identity. To create your reference voiceprint:
+              </p>
+              <ul className="list-disc pl-5 space-y-1.5 text-slate-400">
+                <li>You will record three short spoken sentences (minimum 1.0 second each).</li>
+                <li>Audio recordings are transformed into 192-dimensional ECAPA-TDNN neural embeddings.</li>
+                <li>Voiceprint templates are stored using AES-256-GCM envelope encryption with per-profile DEKs.</li>
+                <li>Raw audio files are processed in memory and never written to permanent disk storage.</li>
+                <li>You maintain the permanent right to revoke your voice profile and cryptographically shred stored vectors at any time.</li>
               </ul>
             </div>
 
@@ -215,57 +243,64 @@ export default function EnrollmentPage() {
         </Card>
       )}
 
-      {/* STEP 2: Acoustic Recording (3 Samples) */}
-      {step === 2 && (
+      {/* STEP 2 & 3: Multi-Sample Recording & Review */}
+      {(step === 2 || step === 3) && (
         <div className="space-y-6">
           <div className="p-4 rounded-xl bg-blue-950/30 border border-blue-800/40 text-xs text-blue-200 flex items-start gap-3">
             <Lock className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
             <span>
-              <strong>Enrollment Protocol:</strong> Record 3 distinct spoken sentences (minimum 3 seconds each). Maintain a quiet environment and consistent distance from the microphone.
+              <strong>Acoustic Protocol:</strong> Speak clearly at a normal conversational volume. Maintain a quiet background environment. Each sample must be between 1.0 and 60.0 seconds.
             </span>
           </div>
 
           <div className="space-y-4">
             <AudioRecorder
               sampleLabel="Utterance 1: Phonetic Baseline"
-              minDurationSec={3}
+              minDurationSec={1.0}
+              maxDurationSec={60.0}
               onRecordingComplete={(file) => handleSampleRecorded(0, file)}
+              onRecordingReset={() => handleSampleReset(0)}
             />
             <AudioRecorder
               sampleLabel="Utterance 2: Dynamic Inflection"
-              minDurationSec={3}
+              minDurationSec={1.0}
+              maxDurationSec={60.0}
               onRecordingComplete={(file) => handleSampleRecorded(1, file)}
+              onRecordingReset={() => handleSampleReset(1)}
             />
             <AudioRecorder
               sampleLabel="Utterance 3: Reference Anchor"
-              minDurationSec={3}
+              minDurationSec={1.0}
+              maxDurationSec={60.0}
               onRecordingComplete={(file) => handleSampleRecorded(2, file)}
+              onRecordingReset={() => handleSampleReset(2)}
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-xl bg-slate-900 border border-slate-800">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-slate-900 border border-slate-800">
             <div className="text-xs text-slate-400">
-              Samples Recorded:{" "}
-              <strong className="text-white">
-                {recordedFiles.filter(Boolean).length} of 3
+              Samples Prepared:{" "}
+              <strong className={allSamplesCaptured ? "text-emerald-400" : "text-white"}>
+                {validSamples.length} of 3
               </strong>
+              {allSamplesCaptured && " (Ready for neural centroid aggregation)"}
             </div>
 
             <Button
               onClick={handleSubmitEnrollment}
-              disabled={recordedFiles.filter(Boolean).length < 3}
-              isLoading={isSubmitting}
-              className="bg-blue-600 hover:bg-blue-500 text-white gap-2 text-xs font-semibold px-6"
+              disabled={!allSamplesCaptured || enrollMutation.isPending}
+              isLoading={enrollMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-500 text-white gap-2 text-xs font-semibold px-6 w-full sm:w-auto"
             >
               <Upload className="w-4 h-4" />
-              <span>Generate Biometric Centroid</span>
+              <span>Enroll Voiceprint</span>
             </Button>
           </div>
         </div>
       )}
 
-      {/* STEP 3: Enrollment Success */}
-      {step === 3 && (
+      {/* STEP 4: Enrollment Success Confirmation */}
+      {step === 4 && enrollmentResult && (
         <Card className="border-emerald-800/60 bg-slate-900/90 shadow-2xl text-center">
           <CardContent className="p-8 space-y-6">
             <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mx-auto">
@@ -275,28 +310,28 @@ export default function EnrollmentPage() {
             <div className="space-y-2">
               <h2 className="text-2xl font-bold text-white">Voiceprint Successfully Enrolled</h2>
               <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
-                Your 192D ECAPA-TDNN reference vector has been encrypted and committed to the secure biometric vault.
+                Your 192D ECAPA-TDNN reference vector has been encrypted with AES-256-GCM and committed to PostgreSQL and secure biometric storage.
               </p>
             </div>
 
             <div className="max-w-md mx-auto grid grid-cols-2 gap-3 text-left text-xs p-4 rounded-xl bg-slate-950/80 border border-slate-800">
               <div>
-                <span className="text-slate-400">Enrolled Samples</span>
-                <p className="font-semibold text-white mt-0.5">{enrollmentResult?.sample_count || 3} Utterances</p>
+                <span className="text-slate-400">Profile Identifier</span>
+                <p className="font-mono text-white text-xs mt-0.5 truncate">{enrollmentResult.profile_id}</p>
+              </div>
+              <div>
+                <span className="text-slate-400">Aggregated Utterances</span>
+                <p className="font-semibold text-white mt-0.5">{enrollmentResult.sample_count} Recordings</p>
               </div>
               <div>
                 <span className="text-slate-400">Pairwise Consistency</span>
                 <p className="font-semibold text-emerald-400 mt-0.5 font-mono">
-                  {enrollmentResult?.mean_pairwise_similarity?.toFixed(4) || "0.8842"}
+                  {enrollmentResult.mean_pairwise_similarity.toFixed(4)}
                 </p>
               </div>
               <div>
-                <span className="text-slate-400">Encryption Method</span>
-                <p className="font-semibold text-white mt-0.5">AES-256-GCM Envelope</p>
-              </div>
-              <div>
-                <span className="text-slate-400">Status</span>
-                <p className="font-semibold text-emerald-400 mt-0.5">ACTIVE</p>
+                <span className="text-slate-400">Profile Status</span>
+                <p className="font-semibold text-emerald-400 mt-0.5">{enrollmentResult.status}</p>
               </div>
             </div>
 
@@ -307,9 +342,9 @@ export default function EnrollmentPage() {
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Button>
               </Link>
-              <Link href="/dashboard" className="w-full sm:w-auto">
+              <Link href="/profile" className="w-full sm:w-auto">
                 <Button variant="secondary" className="w-full sm:w-auto text-xs">
-                  Dashboard
+                  View Profile Details
                 </Button>
               </Link>
             </div>

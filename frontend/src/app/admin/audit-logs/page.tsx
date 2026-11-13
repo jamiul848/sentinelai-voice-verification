@@ -1,4 +1,4 @@
-n"use client";
+"use client";
 
 import React, { useState } from "react";
 import { useDemoStore } from "@/store/useDemoStore";

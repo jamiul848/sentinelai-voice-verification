@@ -33,6 +33,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     initializeAuth();
 
     const handleLogout = () => {
+      queryClient.clear();
       clearAuth();
       router.push("/login");
     };
@@ -41,7 +42,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     return () => {
       window.removeEventListener("sentinel:logout", handleLogout);
     };
-  }, [initializeAuth, clearAuth, router]);
+  }, [initializeAuth, clearAuth, router, queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -49,4 +50,3 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     </QueryClientProvider>
   );
 }
-

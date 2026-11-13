@@ -1,11 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useDemoStore } from "@/store/useDemoStore";
 import { biometricsService } from "@/lib/api/services/biometrics.service";
-import { DEMO_PROFILE, DEMO_VERIFICATION_ACTIVITY_CHART, DEMO_VERIFICATION_HISTORY } from "@/config/demo";
+import {
+  DEMO_PROFILE,
+  DEMO_VERIFICATION_ACTIVITY_CHART,
+  DEMO_VERIFICATION_HISTORY,
+} from "@/config/demo";
 import { VerificationHistoryItem, VoiceProfile } from "@/types";
 import { formatDateTime, formatLatency, formatScore, truncateId } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,43 +36,84 @@ export default function UserDashboardPage() {
   const user = useAuthStore((s) => s.user);
   const isDemoMode = useDemoStore((s) => s.isDemoMode);
 
-  const [profile, setProfile] = useState<VoiceProfile | null>(null);
-  const [history, setHistory] = useState<VerificationHistoryItem[]>([]);
-  const [_isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  // TanStack Query for Biometric Profile
+  const {
+    data: profileData,
+    isLoading: isProfileLoading,
+    error: profileError,
+  } = useQuery<VoiceProfile | null>({
+    queryKey: ["biometrics", "profile", isDemoMode],
+    queryFn: async () => {
+      if (isDemoMode) return DEMO_PROFILE;
+      return await biometricsService.getProfile();
+    },
+    staleTime: 60 * 1000,
+  });
 
-  useEffect(() => {
-    async function loadData() {
-      setIsLoading(true);
-      setFetchError(null);
-
+  // TanStack Query for Verification History
+  const {
+    data: historyData,
+    isLoading: isHistoryLoading,
+    error: historyError,
+  } = useQuery<{ items: VerificationHistoryItem[]; total: number }>({
+    queryKey: ["biometrics", "history", isDemoMode],
+    queryFn: async () => {
       if (isDemoMode) {
-        setProfile(DEMO_PROFILE);
-        setHistory(DEMO_VERIFICATION_HISTORY);
-        setIsLoading(false);
-        return;
+        return {
+          items: DEMO_VERIFICATION_HISTORY,
+          total: DEMO_VERIFICATION_HISTORY.length,
+        };
       }
+      const res = await biometricsService.getVerificationHistory({ limit: 50 });
+      return {
+        items: res?.items || [],
+        total: res?.total || 0,
+      };
+    },
+    staleTime: 30 * 1000,
+  });
 
-      try {
-        const [profileData, historyData] = await Promise.all([
-          biometricsService.getProfile(),
-          biometricsService.getVerificationHistory({ limit: 5 }),
-        ]);
-        setProfile(profileData);
-        setHistory(historyData?.items || []);
-      } catch (err: any) {
-        setFetchError(err.message || "Failed to load biometric activity.");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    loadData();
-  }, [isDemoMode]);
-
-  const totalVerifications = history.length;
+  const profile = profileData || null;
+  const history = useMemo(() => historyData?.items || [], [historyData?.items]);
+  const totalVerifications = historyData?.total ?? history.length;
   const matches = history.filter((h) => h.decision === "MATCH").length;
   const nonMatches = history.filter((h) => h.decision === "NO_MATCH").length;
+
+  // Derive chronological activity timeline for Recharts visualization
+  const chartData = useMemo(() => {
+    if (isDemoMode) {
+      return DEMO_VERIFICATION_ACTIVITY_CHART;
+    }
+
+    if (history.length === 0) {
+      return [{ date: "No Activity", matches: 0, nonMatches: 0 }];
+    }
+
+    // Group items by calendar date
+    const dateMap = new Map<string, { matches: number; nonMatches: number }>();
+    // Iterate chronological order (reverse of newest-first history)
+    const reversedHistory = [...history].reverse();
+
+    for (const item of reversedHistory) {
+      const dateKey = item.created_at ? item.created_at.split("T")[0] : "Recent";
+      const current = dateMap.get(dateKey) || { matches: 0, nonMatches: 0 };
+      if (item.decision === "MATCH") {
+        current.matches += 1;
+      } else {
+        current.nonMatches += 1;
+      }
+      dateMap.set(dateKey, current);
+    }
+
+    return Array.from(dateMap.entries()).map(([date, counts]) => ({
+      date,
+      matches: counts.matches,
+      nonMatches: counts.nonMatches,
+    }));
+  }, [isDemoMode, history]);
+
+  const fetchError = profileError?.message || historyError?.message;
+  const isLoading = isProfileLoading || isHistoryLoading;
 
   return (
     <div className="space-y-6">
@@ -105,7 +151,7 @@ export default function UserDashboardPage() {
         </div>
       </div>
 
-      {fetchError && (
+      {fetchError && !isDemoMode && (
         <div className="p-4 rounded-xl bg-red-950/50 border border-red-800 text-red-300 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-4 h-4 flex-shrink-0" />
@@ -125,7 +171,9 @@ export default function UserDashboardPage() {
             <div className="space-y-1">
               <p className="text-xs font-medium text-slate-400">Voiceprint State</p>
               <div className="pt-0.5">
-                {profile?.status === "ACTIVE" ? (
+                {isLoading ? (
+                  <span className="text-xs text-slate-500 animate-pulse">Loading...</span>
+                ) : profile?.status === "ACTIVE" ? (
                   <Badge variant="success" className="gap-1 text-xs">
                     <ShieldCheck className="w-3.5 h-3.5" /> ACTIVE
                   </Badge>
@@ -151,7 +199,9 @@ export default function UserDashboardPage() {
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium text-slate-400">Total Evaluations</p>
-              <p className="text-2xl font-bold text-white">{totalVerifications}</p>
+              <p className="text-2xl font-bold text-white">
+                {isLoading ? "..." : totalVerifications}
+              </p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
               <History className="w-5 h-5" />
@@ -164,7 +214,9 @@ export default function UserDashboardPage() {
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium text-slate-400">Authentic MATCH</p>
-              <p className="text-2xl font-bold text-emerald-400">{matches}</p>
+              <p className="text-2xl font-bold text-emerald-400">
+                {isLoading ? "..." : matches}
+              </p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
               <CheckCircle2 className="w-5 h-5" />
@@ -177,7 +229,9 @@ export default function UserDashboardPage() {
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium text-slate-400">Impostor Repelled</p>
-              <p className="text-2xl font-bold text-red-400">{nonMatches}</p>
+              <p className="text-2xl font-bold text-red-400">
+                {isLoading ? "..." : nonMatches}
+              </p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
               <ShieldAlert className="w-5 h-5" />
@@ -204,15 +258,7 @@ export default function UserDashboardPage() {
             )}
           </CardHeader>
           <CardContent className="pt-4">
-            <VerificationChart
-              data={
-                isDemoMode
-                  ? DEMO_VERIFICATION_ACTIVITY_CHART
-                  : [
-                      { date: "Current Session", matches: matches, nonMatches: nonMatches },
-                    ]
-              }
-            />
+            <VerificationChart data={chartData} />
           </CardContent>
         </Card>
 
@@ -311,32 +357,26 @@ export default function UserDashboardPage() {
                     <TableCell className="text-xs text-slate-400">{formatDateTime(item.created_at)}</TableCell>
                     <TableCell>
                       {item.decision === "MATCH" ? (
-                        <Badge variant="success" className="gap-1 text-[11px]">
+                        <Badge variant="success" className="text-[11px] gap-1">
                           <CheckCircle2 className="w-3 h-3" /> MATCH
                         </Badge>
                       ) : (
-                        <Badge variant="destructive" className="gap-1 text-[11px]">
+                        <Badge variant="destructive" className="text-[11px] gap-1">
                           <XCircle className="w-3 h-3" /> NO_MATCH
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      <span
-                        className={
-                          item.similarity_score >= item.applied_threshold
-                            ? "text-emerald-400 font-semibold"
-                            : "text-red-400 font-semibold"
-                        }
-                      >
-                        {formatScore(item.similarity_score)}
-                      </span>
+                    <TableCell className="font-mono text-xs text-slate-200">
+                      {formatScore(item.similarity_score)}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-slate-400">
                       {formatScore(item.applied_threshold)}
                     </TableCell>
-                    <TableCell className="text-xs text-slate-400 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-slate-500" />
-                      {formatLatency(item.processing_time_ms)}
+                    <TableCell className="text-xs text-slate-400">
+                      <span className="flex items-center gap-1 font-mono">
+                        <Clock className="w-3 h-3 text-slate-500" />
+                        {formatLatency(item.processing_time_ms)}
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -6,7 +6,7 @@ interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  setAuth: (user: User, accessToken: string, refreshToken?: string) => void;
+  setAuth: (user: User, accessToken: string, fallbackRefreshToken?: string) => void;
   setUser: (user: User) => void;
   clearAuth: () => void;
   initialize: () => void;
@@ -18,13 +18,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   isLoading: true,
 
-  setAuth: (user, accessToken, refreshToken) => {
+  setAuth: (user, accessToken, fallbackRefreshToken) => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("sentinel_access_token", accessToken);
-      if (refreshToken) {
-        localStorage.setItem("sentinel_refresh_token", refreshToken);
+      sessionStorage.setItem("sentinel_access_token", accessToken);
+      sessionStorage.setItem("sentinel_user", JSON.stringify(user));
+      if (fallbackRefreshToken) {
+        sessionStorage.setItem("sentinel_refresh_fallback", fallbackRefreshToken);
       }
-      localStorage.setItem("sentinel_user", JSON.stringify(user));
+      // Clean up legacy localStorage tokens to ensure no persistent credentials linger
+      localStorage.removeItem("sentinel_refresh_token");
+      localStorage.removeItem("sentinel_access_token");
     }
     set({
       user,
@@ -36,15 +39,18 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setUser: (user) => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("sentinel_user", JSON.stringify(user));
+      sessionStorage.setItem("sentinel_user", JSON.stringify(user));
     }
     set({ user });
   },
 
   clearAuth: () => {
     if (typeof window !== "undefined") {
-      localStorage.removeItem("sentinel_access_token");
+      sessionStorage.removeItem("sentinel_access_token");
+      sessionStorage.removeItem("sentinel_refresh_fallback");
+      sessionStorage.removeItem("sentinel_user");
       localStorage.removeItem("sentinel_refresh_token");
+      localStorage.removeItem("sentinel_access_token");
       localStorage.removeItem("sentinel_user");
     }
     set({
@@ -62,8 +68,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     try {
-      const token = localStorage.getItem("sentinel_access_token");
-      const userStr = localStorage.getItem("sentinel_user");
+      const token =
+        sessionStorage.getItem("sentinel_access_token") ||
+        localStorage.getItem("sentinel_access_token");
+      const userStr =
+        sessionStorage.getItem("sentinel_user") ||
+        localStorage.getItem("sentinel_user");
 
       if (token && userStr) {
         const user = JSON.parse(userStr) as User;
@@ -91,4 +101,3 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 }));
-

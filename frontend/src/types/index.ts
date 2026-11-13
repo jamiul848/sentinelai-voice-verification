@@ -140,6 +140,19 @@ export interface VoiceProfile {
   revoked_at?: string | null;
 }
 
+export interface VoiceProfileDetailResponse extends VoiceProfile {
+  enrollment_records: EnrollmentSampleMetadata[];
+}
+
+export interface ReEnrollmentResponse {
+  profile_id: string;
+  previous_profile_id?: string | null;
+  status: "ACTIVE" | "REVOKED";
+  sample_count: number;
+  mean_pairwise_similarity: number;
+  message: string;
+}
+
 export interface VerificationHistoryItem {
   id: string;
   decision: "MATCH" | "NO_MATCH";

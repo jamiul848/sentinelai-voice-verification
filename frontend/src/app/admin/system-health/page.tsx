@@ -1,4 +1,4 @@
-at"use client";
+"use client";
 
 import React, { useCallback, useEffect, useState } from "react";
 import { monitoringService } from "@/lib/api/services/monitoring.service";
