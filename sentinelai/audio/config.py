@@ -1,5 +1,6 @@
 """Audio preprocessing configuration models and validation settings."""
 
+from typing import Tuple
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -31,7 +32,7 @@ class AudioPreprocessingConfig(BaseModel):
         description="Minimum audio duration in seconds required for speaker verification.",
     )
     max_duration_sec: float = Field(
-        default=30.0,
+        default=60.0,
         gt=0.0,
         description="Maximum allowed audio duration in seconds.",
     )
@@ -63,9 +64,13 @@ class AudioPreprocessingConfig(BaseModel):
         le=1.0,
         description="Target peak amplitude when normalize_audio is True.",
     )
+    supported_formats: Tuple[str, ...] = Field(
+        default=("WAV", "FLAC"),
+        description="Allowed audio container formats (default: ('WAV', 'FLAC')).",
+    )
     strict_wav_format: bool = Field(
         default=True,
-        description="Strictly check WAV container RIFF/WAVE header signatures.",
+        description="Enforce container header signature validation for allowed formats.",
     )
     ensure_2d_tensor: bool = Field(
         default=True,

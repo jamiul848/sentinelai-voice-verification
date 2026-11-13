@@ -2,7 +2,7 @@
 
 import io
 from pathlib import Path
-from typing import BinaryIO, Union
+from typing import BinaryIO, Tuple, Union
 import numpy as np
 
 from sentinelai.audio.config import AudioPreprocessingConfig
@@ -17,23 +17,30 @@ from sentinelai.audio.exceptions import (
 from sentinelai.audio.metrics import AudioMetrics
 
 
-def validate_wav_header(source: Union[bytes, BinaryIO, Path, str]) -> None:
-    """Verify that the input has a valid RIFF/WAVE header.
+def validate_audio_header(
+    source: Union[bytes, BinaryIO, Path, str],
+    allowed_formats: Tuple[str, ...] = ("WAV", "FLAC"),
+) -> str:
+    """Verify that the input has a valid container header for supported formats (WAV, FLAC).
 
     Args:
         source: Audio source as bytes, open binary buffer, or file path.
+        allowed_formats: Tuple of allowed format names (default: ("WAV", "FLAC")).
+
+    Returns:
+        Detected format string: 'WAV' or 'FLAC'.
 
     Raises:
         EmptyAudioFileError: If source is zero bytes.
-        AudioFileCorruptedError: If header does not conform to the RIFF/WAVE specification.
+        AudioFileCorruptedError: If header does not conform to WAV or FLAC specifications.
     """
     header_bytes: bytes
 
     if isinstance(source, bytes):
         if len(source) == 0:
             raise EmptyAudioFileError("Provided audio byte buffer is empty (0 bytes).")
-        if len(source) < 12:
-            raise AudioFileCorruptedError("Audio buffer is truncated (less than 12 bytes).")
+        if len(source) < 4:
+            raise AudioFileCorruptedError("Audio buffer is truncated (less than 4 bytes).")
         header_bytes = source[:12]
     elif isinstance(source, (io.BytesIO, io.BufferedReader)):
         current_pos = source.tell()
@@ -41,8 +48,8 @@ def validate_wav_header(source: Union[bytes, BinaryIO, Path, str]) -> None:
         source.seek(current_pos)
         if len(header_bytes) == 0:
             raise EmptyAudioFileError("Audio stream is empty (0 bytes).")
-        if len(header_bytes) < 12:
-            raise AudioFileCorruptedError("Audio stream is truncated (less than 12 bytes).")
+        if len(header_bytes) < 4:
+            raise AudioFileCorruptedError("Audio stream is truncated (less than 4 bytes).")
     elif isinstance(source, (str, Path)):
         p = Path(source)
         if not p.exists():
@@ -52,22 +59,59 @@ def validate_wav_header(source: Union[bytes, BinaryIO, Path, str]) -> None:
         size = p.stat().st_size
         if size == 0:
             raise EmptyAudioFileError(f"Audio file is empty (0 bytes): {p}")
-        if size < 12:
+        if size < 4:
             raise AudioFileCorruptedError(f"Audio file is truncated (only {size} bytes): {p}")
         with open(p, "rb") as f:
             header_bytes = f.read(12)
     else:
         raise AudioValidationError(f"Unsupported source type for header check: {type(source)}")
 
-    # Standard WAV starts with 'RIFF' (little-endian) or 'RIFX' (big-endian) and contains 'WAVE' at bytes 8-12
-    chunk_id = header_bytes[0:4]
-    format_id = header_bytes[8:12]
+    chunk_id = header_bytes[:4]
 
-    if chunk_id not in (b"RIFF", b"RIFX") or format_id != b"WAVE":
-        raise AudioFileCorruptedError(
-            f"Invalid WAV container header: Expected RIFF/WAVE signature, "
-            f"got chunk_id={chunk_id!r}, format_id={format_id!r}."
-        )
+    # 1. FLAC container check: starts with 'fLaC' stream marker
+    if chunk_id == b"fLaC":
+        if "FLAC" not in allowed_formats:
+            raise AudioFileCorruptedError(
+                f"Audio format 'FLAC' detected but not permitted in allowed formats: {allowed_formats}"
+            )
+        return "FLAC"
+
+    # 2. WAV container check: starts with RIFF/RIFX and has WAVE at offset 8..12
+    if chunk_id in (b"RIFF", b"RIFX"):
+        if len(header_bytes) < 12:
+            raise AudioFileCorruptedError("Audio buffer is truncated (less than 12 bytes).")
+        format_id = header_bytes[8:12]
+        if format_id != b"WAVE":
+            raise AudioFileCorruptedError(
+                f"Invalid WAV container header: Expected RIFF/WAVE signature, "
+                f"got chunk_id={chunk_id!r}, format_id={format_id!r}."
+            )
+        if "WAV" not in allowed_formats:
+            raise AudioFileCorruptedError(
+                f"Audio format 'WAV' detected but not permitted in allowed formats: {allowed_formats}"
+            )
+        return "WAV"
+
+    # Neither valid signature
+    raise AudioFileCorruptedError(
+        f"Invalid audio container header: Expected RIFF/WAVE or fLaC signature, "
+        f"got chunk_id={chunk_id!r}."
+    )
+
+
+def validate_wav_header(source: Union[bytes, BinaryIO, Path, str]) -> None:
+    """Verify that the input has a valid RIFF/WAVE header.
+
+    Retained for backward compatibility with strict WAV-only verification workflows.
+
+    Args:
+        source: Audio source as bytes, open binary buffer, or file path.
+
+    Raises:
+        EmptyAudioFileError: If source is zero bytes.
+        AudioFileCorruptedError: If header does not conform to the RIFF/WAVE specification.
+    """
+    validate_audio_header(source, allowed_formats=("WAV",))
 
 
 def validate_audio_numeric(audio: np.ndarray) -> None:

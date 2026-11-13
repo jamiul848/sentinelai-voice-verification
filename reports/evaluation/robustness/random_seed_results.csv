@@ -1,0 +1,6 @@
+seed,is_primary_baseline,calibrated_threshold,dev_eer_percent,test_eer_diagnostic_percent,test_far_percent,test_frr_percent,test_accuracy_percent,test_precision,test_recall,test_f1_score,test_roc_auc
+42,True,0.405898,1.12,0.56,0.28,1.02,99.09,0.999554,0.989841,0.9947,0.999601
+123,False,0.40824,1.25,0.56,0.0,1.02,99.12,1.0,0.989841,0.9949,0.99956
+456,False,0.394104,1.05,0.56,0.0,0.93,99.2,1.0,0.990724,0.9953,0.999571
+789,False,0.396356,1.0,0.56,0.56,0.97,99.09,0.999109,0.990283,0.9947,0.999618
+2026,False,0.41261,1.16,0.56,0.28,1.19,98.93,0.999553,0.988074,0.9938,0.999567

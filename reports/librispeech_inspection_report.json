@@ -1,0 +1,771 @@
+{
+  "dataset_name": "LibriSpeech (dev-clean & test-clean)",
+  "dataset_root": "datasets\\librispeech",
+  "inspection_timestamp": "2026-11-12T05:51:03.042861+00:00",
+  "splits": {
+    "dev-clean": {
+      "split_name": "dev-clean",
+      "root_path": "datasets\\librispeech\\dev-clean\\LibriSpeech\\dev-clean",
+      "total_speakers": 40,
+      "total_chapters": 97,
+      "total_utterances": 2703,
+      "total_duration_sec": 19396.12,
+      "total_duration_formatted": "5h 23m 16.12s",
+      "min_duration_sec": 1.45,
+      "max_duration_sec": 32.65,
+      "mean_duration_sec": 7.18,
+      "std_duration_sec": 4.7,
+      "sample_rate_distribution": {
+        "16000": 2703
+      },
+      "channel_distribution": {
+        "1": 2703
+      },
+      "subtype_distribution": {
+        "PCM_16": 2703
+      },
+      "format_distribution": {
+        "FLAC": 2703
+      },
+      "total_size_bytes": 359034309,
+      "total_size_mb": 342.4,
+      "corrupted_files": [],
+      "empty_files": [],
+      "speakers": {
+        "1272": {
+          "speaker_id": "1272",
+          "gender": "M",
+          "name": "John Rose",
+          "chapter_count": 3,
+          "utterance_count": 73,
+          "total_duration_sec": 481.03,
+          "avg_duration_sec": 6.59
+        },
+        "1462": {
+          "speaker_id": "1462",
+          "gender": "F",
+          "name": "E. Tavano",
+          "chapter_count": 3,
+          "utterance_count": 94,
+          "total_duration_sec": 482.19,
+          "avg_duration_sec": 5.13
+        },
+        "1673": {
+          "speaker_id": "1673",
+          "gender": "F",
+          "name": "Tonia",
+          "chapter_count": 2,
+          "utterance_count": 42,
+          "total_duration_sec": 484.0,
+          "avg_duration_sec": 11.52
+        },
+        "174": {
+          "speaker_id": "174",
+          "gender": "M",
+          "name": "Peter Eastman",
+          "chapter_count": 3,
+          "utterance_count": 59,
+          "total_duration_sec": 482.56,
+          "avg_duration_sec": 8.18
+        },
+        "1919": {
+          "speaker_id": "1919",
+          "gender": "F",
+          "name": "nprigoda",
+          "chapter_count": 1,
+          "utterance_count": 64,
+          "total_duration_sec": 490.22,
+          "avg_duration_sec": 7.66
+        },
+        "1988": {
+          "speaker_id": "1988",
+          "gender": "F",
+          "name": "Ransom",
+          "chapter_count": 3,
+          "utterance_count": 75,
+          "total_duration_sec": 489.38,
+          "avg_duration_sec": 6.53
+        },
+        "1993": {
+          "speaker_id": "1993",
+          "gender": "F",
+          "name": "Wendy Belcher",
+          "chapter_count": 4,
+          "utterance_count": 58,
+          "total_duration_sec": 486.81,
+          "avg_duration_sec": 8.39
+        },
+        "2035": {
+          "speaker_id": "2035",
+          "gender": "F",
+          "name": "Sharon Bautista",
+          "chapter_count": 3,
+          "utterance_count": 77,
+          "total_duration_sec": 486.31,
+          "avg_duration_sec": 6.32
+        },
+        "2078": {
+          "speaker_id": "2078",
+          "gender": "M",
+          "name": "Kathy Caver",
+          "chapter_count": 1,
+          "utterance_count": 52,
+          "total_duration_sec": 481.75,
+          "avg_duration_sec": 9.26
+        },
+        "2086": {
+          "speaker_id": "2086",
+          "gender": "M",
+          "name": "Nicodemus",
+          "chapter_count": 2,
+          "utterance_count": 55,
+          "total_duration_sec": 482.39,
+          "avg_duration_sec": 8.77
+        },
+        "2277": {
+          "speaker_id": "2277",
+          "gender": "F",
+          "name": "zinniz",
+          "chapter_count": 3,
+          "utterance_count": 95,
+          "total_duration_sec": 480.5,
+          "avg_duration_sec": 5.06
+        },
+        "2412": {
+          "speaker_id": "2412",
+          "gender": "F",
+          "name": "calystra",
+          "chapter_count": 3,
+          "utterance_count": 58,
+          "total_duration_sec": 483.89,
+          "avg_duration_sec": 8.34
+        },
+        "2428": {
+          "speaker_id": "2428",
+          "gender": "M",
+          "name": "Stephen Kinford",
+          "chapter_count": 2,
+          "utterance_count": 87,
+          "total_duration_sec": 480.99,
+          "avg_duration_sec": 5.53
+        },
+        "251": {
+          "speaker_id": "251",
+          "gender": "M",
+          "name": "Mark Nelson",
+          "chapter_count": 3,
+          "utterance_count": 75,
+          "total_duration_sec": 482.19,
+          "avg_duration_sec": 6.43
+        },
+        "2803": {
+          "speaker_id": "2803",
+          "gender": "M",
+          "name": "aquielisunari",
+          "chapter_count": 3,
+          "utterance_count": 57,
+          "total_duration_sec": 491.86,
+          "avg_duration_sec": 8.63
+        },
+        "2902": {
+          "speaker_id": "2902",
+          "gender": "M",
+          "name": "dexter",
+          "chapter_count": 2,
+          "utterance_count": 38,
+          "total_duration_sec": 485.75,
+          "avg_duration_sec": 12.78
+        },
+        "3000": {
+          "speaker_id": "3000",
+          "gender": "M",
+          "name": "Brian von Dedenroth",
+          "chapter_count": 1,
+          "utterance_count": 47,
+          "total_duration_sec": 482.07,
+          "avg_duration_sec": 10.26
+        },
+        "3081": {
+          "speaker_id": "3081",
+          "gender": "F",
+          "name": "Renata",
+          "chapter_count": 1,
+          "utterance_count": 90,
+          "total_duration_sec": 480.22,
+          "avg_duration_sec": 5.34
+        },
+        "3170": {
+          "speaker_id": "3170",
+          "gender": "M",
+          "name": "VOICEGUY",
+          "chapter_count": 1,
+          "utterance_count": 49,
+          "total_duration_sec": 485.8,
+          "avg_duration_sec": 9.91
+        },
+        "3536": {
+          "speaker_id": "3536",
+          "gender": "F",
+          "name": "Arielle Lipshaw",
+          "chapter_count": 2,
+          "utterance_count": 64,
+          "total_duration_sec": 488.92,
+          "avg_duration_sec": 7.64
+        },
+        "3576": {
+          "speaker_id": "3576",
+          "gender": "F",
+          "name": "JudyGibson",
+          "chapter_count": 1,
+          "utterance_count": 41,
+          "total_duration_sec": 480.11,
+          "avg_duration_sec": 11.71
+        },
+        "3752": {
+          "speaker_id": "3752",
+          "gender": "M",
+          "name": "Mark Welch",
+          "chapter_count": 2,
+          "utterance_count": 101,
+          "total_duration_sec": 483.61,
+          "avg_duration_sec": 4.79
+        },
+        "3853": {
+          "speaker_id": "3853",
+          "gender": "F",
+          "name": "M. Bertke",
+          "chapter_count": 1,
+          "utterance_count": 57,
+          "total_duration_sec": 482.88,
+          "avg_duration_sec": 8.47
+        },
+        "422": {
+          "speaker_id": "422",
+          "gender": "M",
+          "name": "President Lethe",
+          "chapter_count": 1,
+          "utterance_count": 36,
+          "total_duration_sec": 503.02,
+          "avg_duration_sec": 13.97
+        },
+        "5338": {
+          "speaker_id": "5338",
+          "gender": "F",
+          "name": "S R Colon",
+          "chapter_count": 3,
+          "utterance_count": 59,
+          "total_duration_sec": 484.06,
+          "avg_duration_sec": 8.2
+        },
+        "5536": {
+          "speaker_id": "5536",
+          "gender": "M",
+          "name": "David Mix",
+          "chapter_count": 3,
+          "utterance_count": 59,
+          "total_duration_sec": 487.86,
+          "avg_duration_sec": 8.27
+        },
+        "5694": {
+          "speaker_id": "5694",
+          "gender": "M",
+          "name": "Winston Tharp",
+          "chapter_count": 3,
+          "utterance_count": 83,
+          "total_duration_sec": 480.58,
+          "avg_duration_sec": 5.79
+        },
+        "5895": {
+          "speaker_id": "5895",
+          "gender": "F",
+          "name": "iamartin",
+          "chapter_count": 3,
+          "utterance_count": 80,
+          "total_duration_sec": 481.3,
+          "avg_duration_sec": 6.02
+        },
+        "6241": {
+          "speaker_id": "6241",
+          "gender": "M",
+          "name": "badey",
+          "chapter_count": 3,
+          "utterance_count": 78,
+          "total_duration_sec": 482.94,
+          "avg_duration_sec": 6.19
+        },
+        "6295": {
+          "speaker_id": "6295",
+          "gender": "M",
+          "name": "Michael Packard",
+          "chapter_count": 2,
+          "utterance_count": 74,
+          "total_duration_sec": 482.31,
+          "avg_duration_sec": 6.52
+        },
+        "6313": {
+          "speaker_id": "6313",
+          "gender": "F",
+          "name": "Jennifer Wiginton",
+          "chapter_count": 3,
+          "utterance_count": 96,
+          "total_duration_sec": 490.17,
+          "avg_duration_sec": 5.11
+        },
+        "6319": {
+          "speaker_id": "6319",
+          "gender": "F",
+          "name": "thestorygirl",
+          "chapter_count": 3,
+          "utterance_count": 55,
+          "total_duration_sec": 480.54,
+          "avg_duration_sec": 8.74
+        },
+        "6345": {
+          "speaker_id": "6345",
+          "gender": "F",
+          "name": "Jean Bascom",
+          "chapter_count": 3,
+          "utterance_count": 77,
+          "total_duration_sec": 484.39,
+          "avg_duration_sec": 6.29
+        },
+        "652": {
+          "speaker_id": "652",
+          "gender": "M",
+          "name": "Scott Walter",
+          "chapter_count": 3,
+          "utterance_count": 71,
+          "total_duration_sec": 498.62,
+          "avg_duration_sec": 7.02
+        },
+        "777": {
+          "speaker_id": "777",
+          "gender": "M",
+          "name": "fling93",
+          "chapter_count": 1,
+          "utterance_count": 82,
+          "total_duration_sec": 483.69,
+          "avg_duration_sec": 5.9
+        },
+        "7850": {
+          "speaker_id": "7850",
+          "gender": "F",
+          "name": "Jill Engle",
+          "chapter_count": 4,
+          "utterance_count": 72,
+          "total_duration_sec": 483.59,
+          "avg_duration_sec": 6.72
+        },
+        "7976": {
+          "speaker_id": "7976",
+          "gender": "M",
+          "name": "JenniferRutters",
+          "chapter_count": 3,
+          "utterance_count": 78,
+          "total_duration_sec": 487.92,
+          "avg_duration_sec": 6.26
+        },
+        "8297": {
+          "speaker_id": "8297",
+          "gender": "M",
+          "name": "David Mecionis",
+          "chapter_count": 3,
+          "utterance_count": 75,
+          "total_duration_sec": 482.57,
+          "avg_duration_sec": 6.43
+        },
+        "84": {
+          "speaker_id": "84",
+          "gender": "F",
+          "name": "Christie Nowak",
+          "chapter_count": 2,
+          "utterance_count": 65,
+          "total_duration_sec": 481.25,
+          "avg_duration_sec": 7.4
+        },
+        "8842": {
+          "speaker_id": "8842",
+          "gender": "F",
+          "name": "Mary J",
+          "chapter_count": 4,
+          "utterance_count": 55,
+          "total_duration_sec": 485.94,
+          "avg_duration_sec": 8.84
+        }
+      }
+    },
+    "test-clean": {
+      "split_name": "test-clean",
+      "root_path": "datasets\\librispeech\\test-clean\\LibriSpeech\\test-clean",
+      "total_speakers": 36,
+      "total_chapters": 77,
+      "total_utterances": 2372,
+      "total_duration_sec": 17265.43,
+      "total_duration_formatted": "4h 47m 45.43s",
+      "min_duration_sec": 1.28,
+      "max_duration_sec": 34.95,
+      "mean_duration_sec": 7.28,
+      "std_duration_sec": 5.08,
+      "sample_rate_distribution": {
+        "16000": 2372
+      },
+      "channel_distribution": {
+        "1": 2372
+      },
+      "subtype_distribution": {
+        "PCM_16": 2372
+      },
+      "format_distribution": {
+        "FLAC": 2372
+      },
+      "total_size_bytes": 327271038,
+      "total_size_mb": 312.11,
+      "corrupted_files": [],
+      "empty_files": [],
+      "speakers": {
+        "1284": {
+          "speaker_id": "1284",
+          "gender": "F",
+          "name": "Daniel Anaya",
+          "chapter_count": 2,
+          "utterance_count": 27,
+          "total_duration_sec": 242.31,
+          "avg_duration_sec": 8.97
+        },
+        "1320": {
+          "speaker_id": "1320",
+          "gender": "M",
+          "name": "number6",
+          "chapter_count": 2,
+          "utterance_count": 59,
+          "total_duration_sec": 481.27,
+          "avg_duration_sec": 8.16
+        },
+        "1580": {
+          "speaker_id": "1580",
+          "gender": "F",
+          "name": "TinyPines",
+          "chapter_count": 2,
+          "utterance_count": 105,
+          "total_duration_sec": 484.28,
+          "avg_duration_sec": 4.61
+        },
+        "1995": {
+          "speaker_id": "1995",
+          "gender": "F",
+          "name": "AJai Hilton",
+          "chapter_count": 3,
+          "utterance_count": 72,
+          "total_duration_sec": 483.76,
+          "avg_duration_sec": 6.72
+        },
+        "2094": {
+          "speaker_id": "2094",
+          "gender": "F",
+          "name": "amycsj",
+          "chapter_count": 1,
+          "utterance_count": 61,
+          "total_duration_sec": 485.64,
+          "avg_duration_sec": 7.96
+        },
+        "2300": {
+          "speaker_id": "2300",
+          "gender": "M",
+          "name": "Mitchell L Leopard",
+          "chapter_count": 1,
+          "utterance_count": 42,
+          "total_duration_sec": 491.19,
+          "avg_duration_sec": 11.7
+        },
+        "237": {
+          "speaker_id": "237",
+          "gender": "F",
+          "name": "rachelellen",
+          "chapter_count": 3,
+          "utterance_count": 88,
+          "total_duration_sec": 481.48,
+          "avg_duration_sec": 5.47
+        },
+        "260": {
+          "speaker_id": "260",
+          "gender": "M",
+          "name": "Brad Bush",
+          "chapter_count": 3,
+          "utterance_count": 82,
+          "total_duration_sec": 483.12,
+          "avg_duration_sec": 5.89
+        },
+        "2830": {
+          "speaker_id": "2830",
+          "gender": "M",
+          "name": "Tim Perkins",
+          "chapter_count": 2,
+          "utterance_count": 90,
+          "total_duration_sec": 482.45,
+          "avg_duration_sec": 5.36
+        },
+        "2961": {
+          "speaker_id": "2961",
+          "gender": "F",
+          "name": "Leni",
+          "chapter_count": 2,
+          "utterance_count": 46,
+          "total_duration_sec": 484.08,
+          "avg_duration_sec": 10.52
+        },
+        "3570": {
+          "speaker_id": "3570",
+          "gender": "F",
+          "name": "sarac",
+          "chapter_count": 3,
+          "utterance_count": 50,
+          "total_duration_sec": 482.86,
+          "avg_duration_sec": 9.66
+        },
+        "3575": {
+          "speaker_id": "3575",
+          "gender": "F",
+          "name": "supergirl",
+          "chapter_count": 1,
+          "utterance_count": 57,
+          "total_duration_sec": 483.63,
+          "avg_duration_sec": 8.48
+        },
+        "3729": {
+          "speaker_id": "3729",
+          "gender": "F",
+          "name": "Heather Hogan",
+          "chapter_count": 1,
+          "utterance_count": 47,
+          "total_duration_sec": 481.69,
+          "avg_duration_sec": 10.25
+        },
+        "4077": {
+          "speaker_id": "4077",
+          "gender": "M",
+          "name": "Nathan Markham",
+          "chapter_count": 2,
+          "utterance_count": 39,
+          "total_duration_sec": 488.47,
+          "avg_duration_sec": 12.52
+        },
+        "4446": {
+          "speaker_id": "4446",
+          "gender": "F",
+          "name": "Jen Maxwell",
+          "chapter_count": 3,
+          "utterance_count": 108,
+          "total_duration_sec": 480.15,
+          "avg_duration_sec": 4.45
+        },
+        "4507": {
+          "speaker_id": "4507",
+          "gender": "F",
+          "name": "Rachel Nelson-Smith",
+          "chapter_count": 1,
+          "utterance_count": 60,
+          "total_duration_sec": 483.3,
+          "avg_duration_sec": 8.05
+        },
+        "4970": {
+          "speaker_id": "4970",
+          "gender": "F",
+          "name": "airandwaters",
+          "chapter_count": 2,
+          "utterance_count": 63,
+          "total_duration_sec": 489.19,
+          "avg_duration_sec": 7.76
+        },
+        "4992": {
+          "speaker_id": "4992",
+          "gender": "F",
+          "name": "Joyce Martin",
+          "chapter_count": 3,
+          "utterance_count": 62,
+          "total_duration_sec": 492.34,
+          "avg_duration_sec": 7.94
+        },
+        "5105": {
+          "speaker_id": "5105",
+          "gender": "M",
+          "name": "elongman",
+          "chapter_count": 3,
+          "utterance_count": 56,
+          "total_duration_sec": 487.46,
+          "avg_duration_sec": 8.7
+        },
+        "5142": {
+          "speaker_id": "5142",
+          "gender": "F",
+          "name": "Mary Ballard-Johansson",
+          "chapter_count": 4,
+          "utterance_count": 102,
+          "total_duration_sec": 484.25,
+          "avg_duration_sec": 4.75
+        },
+        "5639": {
+          "speaker_id": "5639",
+          "gender": "M",
+          "name": "Ulf Bjorklund",
+          "chapter_count": 1,
+          "utterance_count": 42,
+          "total_duration_sec": 496.69,
+          "avg_duration_sec": 11.83
+        },
+        "5683": {
+          "speaker_id": "5683",
+          "gender": "F",
+          "name": "Rachael Lapidis",
+          "chapter_count": 3,
+          "utterance_count": 75,
+          "total_duration_sec": 480.52,
+          "avg_duration_sec": 6.41
+        },
+        "61": {
+          "speaker_id": "61",
+          "gender": "M",
+          "name": "Paul-Gabriel Wiener",
+          "chapter_count": 2,
+          "utterance_count": 104,
+          "total_duration_sec": 484.58,
+          "avg_duration_sec": 4.66
+        },
+        "672": {
+          "speaker_id": "672",
+          "gender": "M",
+          "name": "Taylor Burton-Edward",
+          "chapter_count": 1,
+          "utterance_count": 75,
+          "total_duration_sec": 496.17,
+          "avg_duration_sec": 6.62
+        },
+        "6829": {
+          "speaker_id": "6829",
+          "gender": "F",
+          "name": "LadyBug",
+          "chapter_count": 2,
+          "utterance_count": 91,
+          "total_duration_sec": 494.46,
+          "avg_duration_sec": 5.43
+        },
+        "6930": {
+          "speaker_id": "6930",
+          "gender": "M",
+          "name": "Nolan Fout",
+          "chapter_count": 3,
+          "utterance_count": 78,
+          "total_duration_sec": 480.05,
+          "avg_duration_sec": 6.15
+        },
+        "7021": {
+          "speaker_id": "7021",
+          "gender": "M",
+          "name": "Nodo420",
+          "chapter_count": 4,
+          "utterance_count": 59,
+          "total_duration_sec": 488.49,
+          "avg_duration_sec": 8.28
+        },
+        "7127": {
+          "speaker_id": "7127",
+          "gender": "M",
+          "name": "Bill Kneeland",
+          "chapter_count": 2,
+          "utterance_count": 71,
+          "total_duration_sec": 499.0,
+          "avg_duration_sec": 7.03
+        },
+        "7176": {
+          "speaker_id": "7176",
+          "gender": "M",
+          "name": "KalenXI",
+          "chapter_count": 2,
+          "utterance_count": 74,
+          "total_duration_sec": 483.44,
+          "avg_duration_sec": 6.53
+        },
+        "7729": {
+          "speaker_id": "7729",
+          "gender": "M",
+          "name": "Tim Bower",
+          "chapter_count": 1,
+          "utterance_count": 47,
+          "total_duration_sec": 489.95,
+          "avg_duration_sec": 10.42
+        },
+        "8224": {
+          "speaker_id": "8224",
+          "gender": "M",
+          "name": "Leanne Kinkopf",
+          "chapter_count": 2,
+          "utterance_count": 32,
+          "total_duration_sec": 494.56,
+          "avg_duration_sec": 15.46
+        },
+        "8230": {
+          "speaker_id": "8230",
+          "gender": "M",
+          "name": "David Jenkins",
+          "chapter_count": 1,
+          "utterance_count": 44,
+          "total_duration_sec": 494.8,
+          "avg_duration_sec": 11.25
+        },
+        "8455": {
+          "speaker_id": "8455",
+          "gender": "M",
+          "name": "thecheops",
+          "chapter_count": 1,
+          "utterance_count": 71,
+          "total_duration_sec": 481.86,
+          "avg_duration_sec": 6.79
+        },
+        "8463": {
+          "speaker_id": "8463",
+          "gender": "F",
+          "name": "Michele Fry",
+          "chapter_count": 3,
+          "utterance_count": 74,
+          "total_duration_sec": 483.02,
+          "avg_duration_sec": 6.53
+        },
+        "8555": {
+          "speaker_id": "8555",
+          "gender": "F",
+          "name": "Michelle Goode",
+          "chapter_count": 3,
+          "utterance_count": 62,
+          "total_duration_sec": 482.09,
+          "avg_duration_sec": 7.78
+        },
+        "908": {
+          "speaker_id": "908",
+          "gender": "M",
+          "name": "Sam Stinson",
+          "chapter_count": 2,
+          "utterance_count": 57,
+          "total_duration_sec": 482.83,
+          "avg_duration_sec": 8.47
+        }
+      }
+    }
+  },
+  "total_speakers": 76,
+  "total_chapters": 174,
+  "total_utterances": 5075,
+  "total_duration_sec": 36661.55,
+  "total_duration_formatted": "10h 11m 01.55s",
+  "speaker_overlap": [],
+  "has_speaker_overlap": false,
+  "total_corrupted_files": 0,
+  "total_empty_files": 0,
+  "is_suitable_for_evaluation": true,
+  "suitability_summary": "The dataset is fully suitable as a controlled, clean development testbed for Phase 5B (Enrollment & Genuine/Impostor Trial Generation) and Phase 5C (Equal Error Rate Calibration). The zero speaker overlap guarantees that the dev-clean and test-clean splits are strictly disjoint, preventing biometric evaluation leakage.",
+  "limitations": [
+    "Read Audiobook Speech Domain: Utterances originate from LibriVox audiobooks (clean read speech), lacking the prosodic variance, conversational turn-taking, and emotional shifts of real-world dialogue.",
+    "High Acoustic Cleanliness: The recordings have near-studio Signal-to-Noise Ratio (SNR) with minimal background noise or reverberation, not testing acoustic robustness or cross-channel variability.",
+    "ASR Origin: LibriSpeech was compiled primarily for speech-to-text benchmark evaluations; speaker verification trials (genuine and impostor pairs) must be synthetically coupled rather than collected as natural multi-session claimant trials.",
+    "Phonetic & Lexical Disparity: Because each speaker reads different book chapters, differences in lexical content may introduce phonetic variance that influences ECAPA-TDNN feature trajectories.",
+    "Absence of Synthetic / Replay Spoofs: The dataset contains exclusively bona fide recordings and provides zero presentation attack detection (PAD) samples for anti-spoofing evaluations."
+  ]
+}
