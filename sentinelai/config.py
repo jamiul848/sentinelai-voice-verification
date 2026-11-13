@@ -74,6 +74,10 @@ class Settings(BaseSettings):
         alias="CSRF_SECRET_KEY",
         description="CSRF token validation secret",
     )
+    cors_origins: list[str] = Field(
+        default=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8000"],
+        description="Allowed CORS origins list",
+    )
 
     # Audio & Model Engine Parameters
     default_threshold: float = Field(

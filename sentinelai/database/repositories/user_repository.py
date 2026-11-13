@@ -217,17 +217,56 @@ class UserRepository(BaseRepository[User]):
         await self.session.refresh(token)
         return token
 
-    async def revoke_refresh_token(self, token_hash: str) -> bool:
-        """Mark a refresh token as revoked."""
+    async def get_refresh_token(self, token_hash: str) -> Optional[RefreshToken]:
+        """Fetch a refresh token by its SHA-256 hash."""
         stmt = select(RefreshToken).where(RefreshToken.token_hash == token_hash)
         res = await self.session.execute(stmt)
-        token = res.scalars().first()
+        return res.scalars().first()
+
+    async def revoke_refresh_token(self, token_hash: str) -> bool:
+        """Mark a refresh token as revoked."""
+        token = await self.get_refresh_token(token_hash)
         if token and not token.is_revoked:
             token.is_revoked = True
             token.revoked_at = utc_now()
             await self.session.flush()
             return True
         return False
+
+    async def revoke_all_user_tokens(self, user_id: uuid.UUID) -> int:
+        """Revoke all active refresh tokens for a user (session revocation)."""
+        stmt = (
+            update(RefreshToken)
+            .where(
+                RefreshToken.user_id == user_id,
+                RefreshToken.is_revoked.is_(False),
+            )
+            .values(is_revoked=True, revoked_at=utc_now())
+        )
+        res = await self.session.execute(stmt)
+        await self.session.flush()
+        return res.rowcount
+
+    async def count_active_admins(self) -> int:
+        """Count active users who hold an ADMIN or SUPER_ADMIN role."""
+        stmt = (
+            select(func.count(func.distinct(User.id)))
+            .join(UserRole, User.id == UserRole.user_id)
+            .join(Role, UserRole.role_id == Role.id)
+            .where(
+                User.is_active.is_(True),
+                Role.name.in_(["ADMIN", "SUPER_ADMIN"]),
+            )
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar() or 0
+
+    async def delete_user(self, user_id: uuid.UUID) -> bool:
+        """Hard delete a user and cascade related records."""
+        stmt = delete(User).where(User.id == user_id)
+        res = await self.session.execute(stmt)
+        await self.session.flush()
+        return res.rowcount > 0
 
     async def create_api_credential(
         self,

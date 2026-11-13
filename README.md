@@ -17,7 +17,9 @@ SentinelAI provides an independent, modular speaker recognition and voice verifi
 - **Phase 5C (Complete):** Threshold Calibration at Equal Error Rate (θ* = 0.4059, Dev EER = 1.12%), Frozen Test Evaluation (FAR = 0.28%, FRR = 1.02%, Accuracy = 99.09%, ROC-AUC = 0.9996), ROC/DET Visualizations, and Research Reporting.
 - **Phase 5D (Complete):** Statistical Validation and Robustness Analysis (Dyadic Speaker-Cluster Bootstrap, 95% Confidence Intervals: FAR [0.00%, 1.64%], FRR [0.39%, 1.77%], Accuracy [98.46%, 99.63%], Multi-Seed Enrollment Stability, Enrollment Utterance Quantity Sensitivity K=1..3, Boundary Error Diagnostics, Decision Threshold Stability Window [0.2700, 0.5350]).
 - **Phase 5E (Complete):** Final Research Report (Comprehensive Synthesis across Phases 1–5D, 100% Real ECAPA-TDNN Audio Inference on LibriSpeech FLAC, ISO/IEC 19795-1 Compliance, Failure Diagnostics, and Anti-Spoofing Roadmap).
-- **Phase 6 (Upcoming):** Presentation Attack Detection (PAD) and Voice Anti-Spoofing Defense (Deepfake and physical replay detection).
+- **Phase 7A (Complete):** Standalone Platform Architecture & System Design (10 formal specifications in `docs/phase-7/`).
+- **Phase 7B (Complete):** PostgreSQL 18 Database, SQLAlchemy 2.0 Async ORM, AsyncPG, Alembic Migrations, Decoupled AES-256-GCM Vector Encryption, and 5 Asynchronous Repositories.
+- **Phase 7C (Complete):** Authentication & User Management (Argon2id password hashing, JWT access tokens, rotating refresh tokens with breach detection, server-side RBAC, self-service profile/password APIs, admin user controls, and GDPR/BIPA biometric consent management).
 
 ```
 sentinelai/
@@ -79,6 +81,26 @@ sentinelai/
     ├── error_analysis.py       # Failure mode diagnostic & boundary proximity analyzer
     ├── sensitivity.py          # Operating threshold sweep & 5% tolerance window analyzer
     └── robustness_visualizer.py # Publication-quality robustness visualizer (7 figures)
+├── database/                   # Relational Database & ORM Layer (Phase 7B)
+│   ├── connection.py           # AsyncEngine connection pooling & session management
+│   ├── base.py                 # SQLAlchemy declarative base with UUID & timestamps
+│   ├── models/                 # 10 production entity models (User, Role, Tokens, Profile, etc.)
+│   └── repositories/           # 5 async repositories (User, Profile, Consent, Audit, Verification)
+├── auth/                       # Authentication, Session & Crypto Module (Phase 7C)
+│   ├── password.py             # Argon2id password hashing & strength validation
+│   ├── jwt_handler.py          # PyJWT access token generation & claims validation
+│   ├── csrf.py                 # Double-Submit CSRF cookie protection
+│   ├── crypto.py               # AES-256-GCM decoupled biometric vector encryption & shredding
+│   ├── dependencies.py         # FastAPI security dependencies (get_current_user, require_role)
+│   ├── schemas.py              # Pydantic schemas (Login, Register, Tokens, Responses)
+│   ├── service.py              # AuthService (Registration, Login, Refresh Rotation, Logout)
+│   └── api.py                  # Authentication APIRouter (/api/v1/auth/*)
+├── users/                      # User & Administrator Management (Phase 7C)
+│   ├── service.py              # UserService (Profile update, Password change, Admin controls)
+│   └── api.py                  # User & Admin APIRouters (/api/v1/users/*, /api/v1/admin/users/*)
+└── consent/                    # Biometric Legal Consent Module (Phase 7C)
+    ├── service.py              # ConsentService (GDPR/BIPA consent grant, history, revocation)
+    └── api.py                  # Biometric Consent APIRouter (/api/v1/consent/*)
 scripts/
 ├── run_preprocessing_demo.py   # Phase 1 standalone preprocessing runner
 ├── run_speaker_embedding_demo.py # Phase 2 standalone ECAPA-TDNN embedding runner

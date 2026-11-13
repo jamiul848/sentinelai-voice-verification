@@ -10,18 +10,22 @@ from sentinelai.database.models import Base
 
 
 def test_alembic_script_directory_and_head_revision():
-    """Verify Alembic configuration discovers the 0001_initial_schema baseline migration."""
+    """Verify Alembic configuration discovers the migration revisions."""
     alembic_cfg = Config("alembic.ini")
     script = ScriptDirectory.from_config(alembic_cfg)
 
     # Get current head
     head_rev = script.get_current_head()
-    assert head_rev == "0001_initial_schema"
+    assert head_rev == "0002_allow_consent_revocation"
 
-    rev_obj = script.get_revision(head_rev)
-    assert rev_obj is not None
-    assert rev_obj.down_revision is None
-    assert "Initial relational database schema" in rev_obj.doc
+    head_obj = script.get_revision(head_rev)
+    assert head_obj is not None
+    assert head_obj.down_revision == "0001_initial_schema"
+
+    base_obj = script.get_revision("0001_initial_schema")
+    assert base_obj is not None
+    assert base_obj.down_revision is None
+    assert "Initial relational database schema" in base_obj.doc
 
 
 @pytest.mark.asyncio

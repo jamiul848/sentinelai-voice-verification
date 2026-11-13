@@ -21,13 +21,14 @@ class ConsentRepository(BaseRepository[ConsentRecord]):
         user_id: uuid.UUID,
         consent_version: str,
         consent_type: str = "VOICE_BIOMETRIC_ENROLLMENT",
+        consent_granted: bool = True,
         ip_address: Optional[str] = None,
     ) -> ConsentRecord:
         """Create and persist an explicit legal biometric consent transaction."""
         consent = ConsentRecord(
             user_id=user_id,
             consent_type=consent_type,
-            consent_granted=True,
+            consent_granted=consent_granted,
             consent_version=consent_version,
             ip_address=ip_address,
         )
@@ -55,17 +56,25 @@ class ConsentRepository(BaseRepository[ConsentRecord]):
         user_id: uuid.UUID,
         consent_type: str = "VOICE_BIOMETRIC_ENROLLMENT",
     ) -> Optional[ConsentRecord]:
-        """Fetch the latest active consent record for a user."""
+        """Fetch the latest consent record for a user (granted or revoked)."""
         stmt = (
             select(ConsentRecord)
             .where(
                 ConsentRecord.user_id == user_id,
                 ConsentRecord.consent_type == consent_type,
-                ConsentRecord.consent_granted.is_(True),
             )
             .order_by(desc(ConsentRecord.created_at))
             .limit(1)
         )
         result = await self.session.execute(stmt)
         return result.scalars().first()
+
+    async def has_active_consent(
+        self,
+        user_id: uuid.UUID,
+        consent_type: str = "VOICE_BIOMETRIC_ENROLLMENT",
+    ) -> bool:
+        """Check whether the user currently has active (unrevoked) consent."""
+        latest = await self.get_latest_consent(user_id, consent_type)
+        return latest is not None and latest.consent_granted is True
 
