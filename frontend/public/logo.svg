@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40" fill="none">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="waveGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#60a5fa" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer Shield Contour -->
+  <path d="M20 3L6 8.5V18.5C6 27.5 12 34.5 20 37C28 34.5 34 27.5 34 18.5V8.5L20 3Z" 
+        fill="#0f172a" stroke="url(#shieldGrad)" stroke-width="2" stroke-linejoin="round" />
+        
+  <!-- Voice Wave Bars inside Shield -->
+  <rect x="11" y="17" width="2.5" height="6" rx="1.25" fill="url(#waveGrad)" />
+  <rect x="15.5" y="13" width="2.5" height="14" rx="1.25" fill="url(#waveGrad)" />
+  <rect x="20" y="10" width="2.5" height="20" rx="1.25" fill="#38bdf8" />
+  <rect x="24.5" y="13" width="2.5" height="14" rx="1.25" fill="url(#waveGrad)" />
+  <rect x="29" y="17" width="2.5" height="6" rx="1.25" fill="url(#waveGrad)" />
+</svg>

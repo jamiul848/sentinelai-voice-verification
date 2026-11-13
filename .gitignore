@@ -10,8 +10,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -26,6 +26,13 @@ MANIFEST
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Node & Frontend
+node_modules/
+.next/
+out/
+.vercel/
+
 
 # Demo outputs & logs
 outputs/

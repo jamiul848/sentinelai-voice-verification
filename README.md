@@ -462,3 +462,36 @@ python scripts/run_enrollment_demo.py
 uvicorn sentinelai.main:app --reload
 ```
 Interactive OpenAPI Swagger docs: `http://127.0.0.1:8000/docs`
+
+---
+
+## 8. Frontend Architecture & Setup (Phase 8A)
+
+The platform provides a cybersecurity-inspired Next.js 16 App Router interface located in `frontend/`.
+
+### Tech Stack
+- **Framework:** Next.js 16 (App Router, Turbopack)
+- **Language:** TypeScript 5
+- **Styling:** Tailwind CSS 4
+- **State & Network:** TanStack Query 5, Axios, Zustand (`useAuthStore`, `useDemoStore`)
+- **Charts & Audio:** Recharts, Web Audio API (`AudioContext`, `AnalyserNode`)
+- **Testing:** Vitest, Testing Library, jsdom
+
+### Starting the Frontend Development Server
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Access the application at `http://localhost:3000`.
+
+### Running Frontend Tests & Production Build
+```bash
+cd frontend
+npm test          # Runs 13 Vitest component and store tests
+npm run build     # Compiles production bundle with Turbopack (17 static routes)
+npm run lint      # Runs ESLint code quality checks
+```
+
+For full architecture details, route breakdown, and design tokens, see [PHASE_8A_FRONTEND_FOUNDATION.md](file:///e:/sentinelai-voice-verification/docs/phase-8/PHASE_8A_FRONTEND_FOUNDATION.md).
+
