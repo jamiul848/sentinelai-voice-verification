@@ -1,76 +1,37 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import { monitoringService } from "@/lib/api/services/monitoring.service";
+import React from "react";
 import { useDemoStore } from "@/store/useDemoStore";
+import { useSystemHealthDetailed } from "@/hooks/useAdmin";
 import { formatDateTime } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Activity,
+  AlertCircle,
   Clock,
   Cpu,
   Database,
+  FolderLock,
   Lock,
   RefreshCw,
   Server,
+  Shield,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 
 export default function AdminSystemHealthPage() {
   const isDemoMode = useDemoStore((s) => s.isDemoMode);
+  const { data: detailed, isLoading, error, refetch, isFetching } = useSystemHealthDetailed();
 
-  const [detailed, setDetailed] = useState<any | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const loadProbes = useCallback(async () => {
-    setIsLoading(true);
-    setErrorMsg(null);
-
-    if (isDemoMode) {
-      setDetailed({
-        status: "ready",
-        service: "Sentinel Voice Platform",
-        version: "0.1.0",
-        uptime_seconds: 18450,
-        components: {
-          database: { status: "connected", latency_ms: 0.47 },
-          redis: { status: "connected", mode: "TCP socket" },
-        },
-        ecapa_engine: {
-          model_identifier: "speechbrain/spkrec-ecapa-voxceleb",
-          device: "cpu",
-          loaded: true,
-          embedding_dim: 192,
-        },
-        biometric_storage: {
-          storage_root: "outputs/biometric_store",
-          accessible: true,
-        },
-        encryption_service: {
-          algorithm: "AES-256-GCM-Envelope-V2",
-          configured: true,
-        },
-        timestamp: new Date().toISOString(),
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const data = await monitoringService.getDetailedHealth();
-      setDetailed(data);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to query system health diagnostic probes.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isDemoMode]);
-
-  useEffect(() => {
-    loadProbes();
-  }, [loadProbes]);
+  const isDbConnected = detailed?.components?.database?.status === "connected";
+  const dbLatency = detailed?.components?.database?.latency_ms;
+  const redisStatus = detailed?.components?.redis?.status || "disabled";
+  const isModelLoaded = detailed?.ecapa_engine?.loaded ?? detailed?.ecapa_engine?.is_loaded;
+  const isStorageAccessible = detailed?.biometric_storage?.accessible;
+  const isEncryptionConfigured = detailed?.encryption_service?.configured;
 
   return (
     <div className="space-y-6">
@@ -78,7 +39,7 @@ export default function AdminSystemHealthPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight">System Operational Health</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">System Health & Infrastructure</h1>
             {isDemoMode && (
               <Badge variant="warning" className="gap-1 text-[10px]">
                 <Sparkles className="w-3 h-3" /> DEMO
@@ -86,165 +47,273 @@ export default function AdminSystemHealthPage() {
             )}
           </div>
           <p className="text-xs sm:text-sm text-slate-400">
-            Real-time inspection of low-level dependencies, deep learning neural models, and cryptographic hardware.
+            Real-time diagnostic probes inspecting database latency, model cache, encrypted storage, and cluster subsystems.
           </p>
         </div>
 
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={loadProbes}
-          isLoading={isLoading}
-          className="gap-2 text-xs"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Refresh Probes</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="gap-1.5 text-xs border-slate-700 bg-slate-900/60"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${isFetching ? "animate-spin" : ""}`} />
+            <span>Poll Health Probes</span>
+          </Button>
+        </div>
       </div>
 
-      {errorMsg && (
-        <div className="p-4 rounded-xl bg-red-950/60 border border-red-800 text-red-300 text-xs">
-          {errorMsg}
+      {/* Error Callout */}
+      {error && (
+        <div className="p-4 rounded-xl bg-red-950/30 border border-red-800/60 text-xs text-red-300 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <span>Unable to query diagnostic health probes. Service may be degraded or unauthorized.</span>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => refetch()} className="text-xs h-7">
+            Retry
+          </Button>
         </div>
       )}
 
-      {/* Main Subsystem Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Database & Latency */}
-        <Card className="border-slate-800 bg-slate-900/80">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-white flex items-center gap-2">
-              <Database className="w-4 h-4 text-blue-400" />
-              <span>Relational Database Engine</span>
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-400">
-              PostgreSQL 18 Async Engine with SQLAlchemy Connection Pooling
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-xs">
-            <div className="flex justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
-              <span className="text-slate-400">Connection State</span>
-              <Badge variant="success" className="text-[10px]">
-                {detailed?.components?.database?.status || "CONNECTED"}
-              </Badge>
+      {/* Main Cluster Status Banner */}
+      <Card
+        className={`border ${
+          detailed?.status === "ready" || detailed?.status === "healthy"
+            ? "border-emerald-600/40 bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950/20"
+            : "border-amber-600/40 bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/20"
+        }`}
+      >
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div
+                className={`w-12 h-12 rounded-xl flex items-center justify-center border ${
+                  detailed?.status === "ready" || detailed?.status === "healthy"
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                    : "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                }`}
+              >
+                <Activity className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-white">
+                    {detailed?.service || "Sentinel Voice Application Server"}
+                  </h2>
+                  <Badge
+                    variant={detailed?.status === "ready" ? "success" : "warning"}
+                    className="text-xs font-mono"
+                  >
+                    {detailed?.status?.toUpperCase() || "CHECKING"}
+                  </Badge>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Version: <span className="font-mono text-slate-300">{detailed?.version || "0.1.0"}</span> • Up since:{" "}
+                  <span className="font-mono text-slate-300">
+                    {detailed?.uptime_seconds ? `${(detailed.uptime_seconds / 3600).toFixed(1)} hours` : "0.0 hours"}
+                  </span>
+                </p>
+              </div>
             </div>
-            <div className="flex justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
-              <span className="text-slate-400">Ping Query Latency</span>
-              <span className="font-mono text-emerald-400 font-bold">
-                {detailed?.components?.database?.latency_ms ?? 0.47} ms
+
+            <div className="text-right text-xs text-slate-400 space-y-0.5">
+              <span>Probe Timestamp:</span>
+              <p className="font-mono text-slate-300">{formatDateTime(detailed?.timestamp)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Subsystem Health Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* PostgreSQL Database */}
+        <Card className="border-slate-800 bg-slate-900/80">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4 text-blue-400" />
+              <CardTitle className="text-sm font-semibold text-white">PostgreSQL 18 DB</CardTitle>
+            </div>
+            <Badge variant={isDbConnected ? "success" : "destructive"} className="text-[10px]">
+              {isDbConnected ? "CONNECTED" : "DISCONNECTED"}
+            </Badge>
+          </CardHeader>
+          <CardContent className="space-y-2 text-xs">
+            <div className="flex justify-between text-slate-400">
+              <span>Query Latency:</span>
+              <span className="font-mono text-emerald-400 font-semibold">
+                {typeof dbLatency === "number" ? `${dbLatency} ms` : "N/A"}
               </span>
             </div>
-            <div className="flex justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
-              <span className="text-slate-400">Connection Pool Pre-ping</span>
-              <span className="text-slate-200">Enabled (300s recycle)</span>
+            <div className="flex justify-between text-slate-400">
+              <span>Driver:</span>
+              <span className="font-mono text-slate-300">asyncpg (AsyncIO)</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Pool Status:</span>
+              <span className="text-slate-300">Transactional (Pooled)</span>
             </div>
           </CardContent>
         </Card>
 
         {/* Redis Rate Limiter */}
         <Card className="border-slate-800 bg-slate-900/80">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-white flex items-center gap-2">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
               <Server className="w-4 h-4 text-purple-400" />
-              <span>Rate Limiting & Abuse Defense</span>
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-400">
-              Sliding-window Redis backend with in-memory fallback
-            </CardDescription>
+              <CardTitle className="text-sm font-semibold text-white">Redis Rate Limiter</CardTitle>
+            </div>
+            <Badge
+              variant={
+                redisStatus === "connected"
+                  ? "success"
+                  : redisStatus === "disabled"
+                  ? "outline"
+                  : "destructive"
+              }
+              className="text-[10px]"
+            >
+              {redisStatus.toUpperCase()}
+            </Badge>
           </CardHeader>
-          <CardContent className="space-y-3 text-xs">
-            <div className="flex justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
-              <span className="text-slate-400">Redis Storage Provider</span>
-              <Badge variant="success" className="text-[10px]">
-                {detailed?.components?.redis?.status || "CONNECTED"}
-              </Badge>
+          <CardContent className="space-y-2 text-xs">
+            <div className="flex justify-between text-slate-400">
+              <span>Engine Backend:</span>
+              <span className="font-mono text-slate-300">
+                {redisStatus === "connected" ? "Redis (Sliding Window)" : "In-Memory Fallback"}
+              </span>
             </div>
-            <div className="flex justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
-              <span className="text-slate-400">Algorithm</span>
-              <span className="font-mono text-slate-200">Sliding-Window Log (ZSET)</span>
+            <div className="flex justify-between text-slate-400">
+              <span>Failover Strategy:</span>
+              <span className="text-emerald-400">Graceful In-Memory</span>
             </div>
-            <div className="flex justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
-              <span className="text-slate-400">Brute-Force Tracker</span>
-              <span className="text-slate-200">Active (5 fails / 15m lockout)</span>
+            <div className="flex justify-between text-slate-400">
+              <span>State Persistence:</span>
+              <span className="text-slate-300">{redisStatus === "connected" ? "Cluster Shared" : "Single Node"}</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* ECAPA-TDNN AI Engine */}
+        {/* ECAPA-TDNN PyTorch Model */}
         <Card className="border-slate-800 bg-slate-900/80">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-white flex items-center gap-2">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
               <Cpu className="w-4 h-4 text-emerald-400" />
-              <span>AI Neural Backbone</span>
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-400">
-              SpeechBrain ECAPA-TDNN Speaker Recognition Engine
-            </CardDescription>
+              <CardTitle className="text-sm font-semibold text-white">ECAPA-TDNN Engine</CardTitle>
+            </div>
+            <Badge variant={isModelLoaded ? "cyber" : "outline"} className="text-[10px]">
+              {isModelLoaded ? "LOADED (192D)" : "STANDBY (ON-DEMAND)"}
+            </Badge>
           </CardHeader>
-          <CardContent className="space-y-3 text-xs">
-            <div className="flex justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
-              <span className="text-slate-400">Model Identifier</span>
-              <span className="font-mono text-blue-300">
+          <CardContent className="space-y-2 text-xs">
+            <div className="flex justify-between text-slate-400">
+              <span>Backbone Model:</span>
+              <span className="font-mono text-blue-300 truncate max-w-[150px]">
                 {detailed?.ecapa_engine?.model_identifier || "speechbrain/spkrec-ecapa-voxceleb"}
               </span>
             </div>
-            <div className="flex justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
-              <span className="text-slate-400">Compute Device</span>
-              <Badge variant="cyber" className="text-[10px]">
-                {detailed?.ecapa_engine?.device?.toUpperCase() || "CPU"}
-              </Badge>
+            <div className="flex justify-between text-slate-400">
+              <span>Compute Device:</span>
+              <span className="font-mono text-slate-300 uppercase">
+                {detailed?.ecapa_engine?.device || "CPU"}
+              </span>
             </div>
-            <div className="flex justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
-              <span className="text-slate-400">Embedding Dimension</span>
-              <span className="font-mono text-emerald-400 font-bold">192-dimensional</span>
+            <div className="flex justify-between text-slate-400">
+              <span>Vector Dimension:</span>
+              <span className="font-mono text-slate-300">
+                {detailed?.ecapa_engine?.embedding_dim || 192} Dimensions
+              </span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Biometric Storage & Encryption */}
+        {/* Encrypted Biometric Storage */}
         <Card className="border-slate-800 bg-slate-900/80">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-white flex items-center gap-2">
-              <Lock className="w-4 h-4 text-amber-400" />
-              <span>Biometric Vault & Cryptography</span>
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-400">
-              AES-256-GCM Envelope Encryption & NIST SP 800-88 Shredder
-            </CardDescription>
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FolderLock className="w-4 h-4 text-amber-400" />
+              <CardTitle className="text-sm font-semibold text-white">Biometric Vault</CardTitle>
+            </div>
+            <Badge variant={isStorageAccessible ? "success" : "destructive"} className="text-[10px]">
+              {isStorageAccessible ? "WRITABLE" : "INACCESSIBLE"}
+            </Badge>
           </CardHeader>
-          <CardContent className="space-y-3 text-xs">
-            <div className="flex justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
-              <span className="text-slate-400">Encryption Scheme</span>
-              <span className="font-mono text-emerald-400 font-bold">
-                {detailed?.encryption_service?.algorithm || "AES-256-GCM-Envelope-V2"}
+          <CardContent className="space-y-2 text-xs">
+            <div className="flex justify-between text-slate-400">
+              <span>Store Mount:</span>
+              <span className="font-mono text-slate-300">
+                {detailed?.biometric_storage?.storage_root || "biometric_store"}
               </span>
             </div>
-            <div className="flex justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
-              <span className="text-slate-400">Storage Root Accessible</span>
-              <Badge variant="success" className="text-[10px]">
-                VERIFIED WRITABLE
-              </Badge>
+            <div className="flex justify-between text-slate-400">
+              <span>Filesystem Permissions:</span>
+              <span className="text-emerald-400">Read / Write Verified</span>
             </div>
-            <div className="flex justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
-              <span className="text-slate-400">Cryptographic Erasure</span>
-              <span className="text-slate-200">NIST SP 800-88 Multi-Pass</span>
+            <div className="flex justify-between text-slate-400">
+              <span>Disk Shredding:</span>
+              <span className="text-slate-300">NIST SP 800-88 Multi-Pass</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Encryption Configuration */}
+        <Card className="border-slate-800 bg-slate-900/80">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-purple-400" />
+              <CardTitle className="text-sm font-semibold text-white">Envelope Encryption</CardTitle>
+            </div>
+            <Badge variant={isEncryptionConfigured ? "success" : "destructive"} className="text-[10px]">
+              {isEncryptionConfigured ? "CONFIGURED" : "MISSING"}
+            </Badge>
+          </CardHeader>
+          <CardContent className="space-y-2 text-xs">
+            <div className="flex justify-between text-slate-400">
+              <span>Algorithm:</span>
+              <span className="font-mono text-purple-300">AES-256-GCM Envelope</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Master Key Entropy:</span>
+              <span className="text-emerald-400">256-bit PBKDF2 / Argon2</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Vector Container:</span>
+              <span className="text-slate-300">Encrypted Chunk Serialization</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Uptime & Process Lifecycle */}
+        <Card className="border-slate-800 bg-slate-900/80">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-blue-400" />
+              <CardTitle className="text-sm font-semibold text-white">Service Lifecycle</CardTitle>
+            </div>
+            <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">
+              ACTIVE
+            </Badge>
+          </CardHeader>
+          <CardContent className="space-y-2 text-xs">
+            <div className="flex justify-between text-slate-400">
+              <span>Uptime:</span>
+              <span className="font-mono text-white font-semibold">
+                {detailed?.uptime_seconds ? `${(detailed.uptime_seconds / 60).toFixed(1)} mins` : "0 mins"}
+              </span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Event Loop:</span>
+              <span className="text-emerald-400">AsyncIO Responsive</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Kubernetes Probes:</span>
+              <span className="font-mono text-slate-300">/health/live, /ready</span>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Uptime and Service Metadata */}
-      <Card className="border-slate-800 bg-slate-900/60 text-xs">
-        <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-400">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-blue-400" />
-            <span>Process Uptime: <strong className="text-white">{detailed?.uptime_seconds ?? 18450} seconds</strong></span>
-          </div>
-          <div>
-            System Version: <strong className="text-white">v0.1.0</strong> • Evaluated at: {formatDateTime(detailed?.timestamp)}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

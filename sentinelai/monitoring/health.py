@@ -101,6 +101,7 @@ class HealthChecker:
         loader = get_model_loader()
         model_info = {
             "is_loaded": loader.is_loaded,
+            "loaded": loader.is_loaded,
             "model_identifier": self.settings.model_identifier,
             "device": str(loader.get_device()),
             "embedding_dimension": self.settings.embedding_dimension,
