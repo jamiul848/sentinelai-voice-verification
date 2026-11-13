@@ -15,6 +15,7 @@ from sentinelai.auth.dependencies import (
 )
 from sentinelai.auth.exceptions import (
     AccountInactiveError,
+    AccountTemporarilyThrottledError,
     EmailAlreadyExistsError,
     InvalidCredentialsError,
     InvalidTokenError,
@@ -34,6 +35,7 @@ from sentinelai.auth.schemas import (
 from sentinelai.auth.service import AuthService
 from sentinelai.config import get_settings
 from sentinelai.database.models.user import User
+from sentinelai.security.rate_limiter import RateLimiter, get_trusted_client_ip
 
 REFRESH_COOKIE_NAME = "sentinel_refresh_token"
 
@@ -41,10 +43,8 @@ router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
 
 def _extract_ip(request: Request) -> Optional[str]:
-    """Helper to extract remote client IP address."""
-    if request.client:
-        return request.client.host
-    return None
+    """Helper to extract remote client IP address with trusted proxy support."""
+    return get_trusted_client_ip(request)
 
 
 @router.post(
@@ -52,6 +52,7 @@ def _extract_ip(request: Request) -> Optional[str]:
     response_model=ApiResponse[UserResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user account",
+    dependencies=[Depends(RateLimiter("register", key_type="ip"))],
 )
 async def register(
     request: Request,
@@ -96,6 +97,7 @@ async def register(
     "/login",
     response_model=ApiResponse[TokenResponse],
     summary="Authenticate user and issue token pair",
+    dependencies=[Depends(RateLimiter("login", key_type="ip"))],
 )
 async def login(
     request: Request,
@@ -144,6 +146,12 @@ async def login(
             message="Login successful.",
             data=token_data,
         )
+    except AccountTemporarilyThrottledError as err:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=err.message,
+            headers={"Retry-After": str(err.retry_after)},
+        ) from err
     except InvalidCredentialsError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -161,6 +169,7 @@ async def login(
     "/refresh",
     response_model=ApiResponse[TokenResponse],
     summary="Rotate refresh token and issue new token pair",
+    dependencies=[Depends(RateLimiter("refresh", key_type="user_or_ip"))],
 )
 async def refresh(
     request: Request,

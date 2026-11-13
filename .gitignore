@@ -40,7 +40,7 @@ ENV/
 
 # Model Weights, Checkpoints & SpeechBrain / HuggingFace Caches
 .cache/
-models/
+/models/
 checkpoints/
 hf_cache/
 speechbrain_cache/

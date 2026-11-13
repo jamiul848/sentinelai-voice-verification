@@ -28,6 +28,7 @@ class ProfileRepository(BaseRepository[VoiceProfile]):
         embedding_storage_path: str,
         embedding_sha256: str,
         model_identifier: str = "speechbrain/spkrec-ecapa-voxceleb",
+        profile_id: Optional[uuid.UUID] = None,
     ) -> VoiceProfile:
         """Create a new active voice profile, revoking any prior active profile."""
         # Deactivate any previous active profile for this user
@@ -37,15 +38,19 @@ class ProfileRepository(BaseRepository[VoiceProfile]):
             prior_active.revoked_at = utc_now()
             prior_active.updated_at = utc_now()
 
-        profile = VoiceProfile(
-            user_id=user_id,
-            status="ACTIVE",
-            sample_count=sample_count,
-            mean_pairwise_similarity=mean_pairwise_similarity,
-            model_identifier=model_identifier,
-            embedding_storage_path=embedding_storage_path,
-            embedding_sha256=embedding_sha256,
-        )
+        profile_kwargs = {
+            "user_id": user_id,
+            "status": "ACTIVE",
+            "sample_count": sample_count,
+            "mean_pairwise_similarity": mean_pairwise_similarity,
+            "model_identifier": model_identifier,
+            "embedding_storage_path": embedding_storage_path,
+            "embedding_sha256": embedding_sha256,
+        }
+        if profile_id is not None:
+            profile_kwargs["id"] = profile_id
+
+        profile = VoiceProfile(**profile_kwargs)
         return await self.add(profile)
 
     async def get_profile_by_id(self, profile_id: uuid.UUID) -> Optional[VoiceProfile]:

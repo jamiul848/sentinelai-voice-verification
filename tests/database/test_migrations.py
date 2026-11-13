@@ -16,11 +16,15 @@ def test_alembic_script_directory_and_head_revision():
 
     # Get current head
     head_rev = script.get_current_head()
-    assert head_rev == "0002_allow_consent_revocation"
+    assert head_rev == "0003_threshold_configs"
 
     head_obj = script.get_revision(head_rev)
     assert head_obj is not None
-    assert head_obj.down_revision == "0001_initial_schema"
+    assert head_obj.down_revision == "0002_allow_consent_revocation"
+
+    rev2_obj = script.get_revision("0002_allow_consent_revocation")
+    assert rev2_obj is not None
+    assert rev2_obj.down_revision == "0001_initial_schema"
 
     base_obj = script.get_revision("0001_initial_schema")
     assert base_obj is not None
@@ -52,6 +56,7 @@ async def test_migration_schema_upgrade_downgrade():
         "enrollment_records",
         "verification_events",
         "audit_logs",
+        "threshold_configurations",
     }
     assert expected_tables.issubset(created_tables)
 

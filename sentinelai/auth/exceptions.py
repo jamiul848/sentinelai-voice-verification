@@ -122,3 +122,29 @@ class ConsentRequiredError(AuthError):
     ) -> None:
         super().__init__(message, error_code="CONSENT_REQUIRED")
 
+
+class RateLimitExceededError(AuthError):
+    """Raised when an API endpoint rate limit quota has been exhausted."""
+
+    def __init__(
+        self,
+        message: str = "Too many requests. Please try again later.",
+        retry_after: int = 60,
+    ) -> None:
+        super().__init__(message, error_code="RATE_LIMIT_EXCEEDED")
+        self.status_code = 429
+        self.retry_after = retry_after
+
+
+class AccountTemporarilyThrottledError(AuthError):
+    """Raised when an account or IP is temporarily throttled due to excessive failed attempts."""
+
+    def __init__(
+        self,
+        message: str = "Too many failed login attempts. Please try again later.",
+        retry_after: int = 900,
+    ) -> None:
+        super().__init__(message, error_code="ACCOUNT_TEMPORARILY_THROTTLED")
+        self.status_code = 429
+        self.retry_after = retry_after
+

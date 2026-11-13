@@ -15,12 +15,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sentinelai.auth.csrf import generate_csrf_token
 from sentinelai.auth.exceptions import (
     AccountInactiveError,
+    AccountTemporarilyThrottledError,
     EmailAlreadyExistsError,
     InvalidCredentialsError,
     InvalidTokenError,
     TokenExpiredError,
     TokenReusedError,
 )
+from sentinelai.security.auth_abuse import get_auth_abuse_tracker
 from sentinelai.auth.jwt_handler import (
     create_access_token,
     generate_refresh_token,
@@ -137,20 +139,36 @@ class AuthService:
             Tuple of (TokenResponse, User).
 
         Raises:
+            AccountTemporarilyThrottledError: If too many failed attempts occurred.
             InvalidCredentialsError: If email or password is incorrect.
             AccountInactiveError: If the account is deactivated.
         """
+        # Step 1: Abuse protection guard against brute-force password spraying
+        abuse_tracker = get_auth_abuse_tracker()
+        is_throttled, retry_after = abuse_tracker.check_throttled(req.email, ip_address)
+        if is_throttled:
+            logger.warning("Throttled login attempt from IP %s", ip_address)
+            raise AccountTemporarilyThrottledError(
+                f"Too many failed login attempts. Account temporarily throttled. Please retry in {retry_after} seconds.",
+                retry_after=retry_after,
+            )
+
         user = await self.user_repo.get_by_email(req.email)
         if user is None:
+            abuse_tracker.record_failure(req.email, ip_address)
             # Constant-time mitigation: perform dummy verify to prevent timing side-channels
             verify_password("dummy_password", "$argon2id$v=19$m=65536,t=3,p=2$dGVzdHNhbHQ$dGVzdGhhc2g")
             raise InvalidCredentialsError("Invalid email or password.")
 
         if not verify_password(req.password, user.hashed_password):
+            abuse_tracker.record_failure(req.email, ip_address)
             raise InvalidCredentialsError("Invalid email or password.")
 
         if not user.is_active:
             raise AccountInactiveError("Account is inactive or suspended. Please contact an administrator.")
+
+        # Authentication succeeded: reset abuse tracking counters
+        abuse_tracker.record_success(req.email, ip_address)
 
         # Resolve role names
         role_names = [r.name for r in user.roles] or ["USER"]

@@ -57,13 +57,15 @@ def get_async_engine(database_url: Optional[str] = None) -> AsyncEngine:
         "future": True,
     }
 
-    # SQLite does not support pool_size and max_overflow
+    # SQLite does not support pool_size, max_overflow, or connection timeout
     if "sqlite" in url:
         engine_kwargs["connect_args"] = {"check_same_thread": False}
     else:
         engine_kwargs["pool_size"] = settings.database_pool_size
         engine_kwargs["max_overflow"] = settings.database_max_overflow
-        engine_kwargs["pool_pre_ping"] = True
+        engine_kwargs["pool_pre_ping"] = settings.database_pool_pre_ping
+        engine_kwargs["pool_recycle"] = settings.database_pool_recycle
+        engine_kwargs["connect_args"] = {"timeout": settings.database_connect_timeout}
 
     try:
         engine = create_async_engine(url, **engine_kwargs)

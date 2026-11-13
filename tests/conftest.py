@@ -16,6 +16,35 @@ import pytest
 import soundfile as sf
 
 
+@pytest.fixture(autouse=True)
+def reset_security_state():
+    """Reset rate limiter and auth abuse trackers between tests.
+    
+    By default in unit/integration test suites, rate limiting is disabled so it does
+    not cross-contaminate unrelated functional tests. Dedicated security tests
+    explicitly enable rate limiting.
+    """
+    from sentinelai.config import get_settings
+    from sentinelai.security.auth_abuse import get_auth_abuse_tracker
+    from sentinelai.security.rate_limiter import get_rate_limiter_backend
+
+    settings = get_settings()
+    original_rate_limit_enabled = settings.rate_limit_enabled
+    settings.rate_limit_enabled = False
+
+    get_auth_abuse_tracker().clear()
+    backend = get_rate_limiter_backend()
+    if hasattr(backend, "clear"):
+        backend.clear()
+
+    yield
+
+    settings.rate_limit_enabled = original_rate_limit_enabled
+    get_auth_abuse_tracker().clear()
+    if hasattr(backend, "clear"):
+        backend.clear()
+
+
 def create_synthetic_sine_tone(
     sample_rate: int = 16000,
     duration_sec: float = 2.0,

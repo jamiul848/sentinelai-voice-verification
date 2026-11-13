@@ -20,11 +20,24 @@ SentinelAI provides an independent, modular speaker recognition and voice verifi
 - **Phase 7A (Complete):** Standalone Platform Architecture & System Design (10 formal specifications in `docs/phase-7/`).
 - **Phase 7B (Complete):** PostgreSQL 18 Database, SQLAlchemy 2.0 Async ORM, AsyncPG, Alembic Migrations, Decoupled AES-256-GCM Vector Encryption, and 5 Asynchronous Repositories.
 - **Phase 7C (Complete):** Authentication & User Management (Argon2id password hashing, JWT access tokens, rotating refresh tokens with breach detection, server-side RBAC, self-service profile/password APIs, admin user controls, and GDPR/BIPA biometric consent management).
+- **Phase 7D (Complete):** Voice Biometric Integration & Live Pipeline Bridge (Multi-utterance voice enrollment, 192D ECAPA-TDNN centroid aggregation, AES-256-GCM envelope encryption, single-probe live speaker verification, PostgreSQL 18 dynamic threshold calibration, profile re-enrollment with automatic vector shredding, revocation, and paginated verification audit history; 373 / 373 passing tests).
+- **Phase 7E (Complete):** Operational Monitoring, Rate Limiting & Production Hardening (Redis sliding-window rate limiting with in-memory fallback, login brute-force and credential stuffing defense with IP throttling, Kubernetes-compatible `/health`, `/health/live`, `/health/ready`, and admin `/health/detailed` probes without weight loading, structured ISO 8601 UTC JSON logging with secret sanitization, distributed `X-Request-ID` correlation tracing, inference bounding via asyncio semaphores, bounded 10MB audio payloads, NIST SP 800-88 cryptographic erasure, Master KEK rotation, connection pool hardening with pre-ping, startup production configuration validation; 413 / 413 passing tests).
 
 ```
 sentinelai/
 ├── __init__.py
 ├── main.py                     # FastAPI application entry point (app = create_app())
+├── monitoring/                 # Operational Monitoring & Observability (Phase 7E)
+│   ├── __init__.py             # Public monitoring exports
+│   ├── api.py                  # Health check APIRouter (/health, /health/live, /health/ready, /health/detailed)
+│   ├── health.py               # Cloud-native health check service (DB, Redis, storage, non-loading model check)
+│   ├── logging.py              # Structured JSON/Console loggers & deep credential/biometric sanitizer
+│   └── request_tracing.py      # Distributed request correlation tracing (X-Request-ID & contextvars)
+├── security/                   # Rate Limiting & Production Hardening (Phase 7E)
+│   ├── __init__.py             # Public security exports
+│   ├── rate_limiter.py         # Redis & in-memory sliding-window rate limiting with trusted proxy support
+│   ├── auth_abuse.py           # Login brute-force defense, account/IP throttling & SHA-256 identifier hashing
+│   └── config_validator.py     # Production startup safety validator (secret entropy, CORS, debug guard)
 ├── audio/                      # Audio Preprocessing Module (Phase 1)
 │   ├── __init__.py             # Public API exports
 │   ├── api.py                  # Audio APIRouter (/audio/preprocess)
@@ -86,6 +99,14 @@ sentinelai/
 │   ├── base.py                 # SQLAlchemy declarative base with UUID & timestamps
 │   ├── models/                 # 10 production entity models (User, Role, Tokens, Profile, etc.)
 │   └── repositories/           # 5 async repositories (User, Profile, Consent, Audit, Verification)
+├── biometrics/                 # Live Voice Biometric Integration Bridge (Phase 7D)
+│   ├── api.py                  # Biometric APIRouter (/api/v1/biometrics/*)
+│   ├── storage.py              # BiometricStorageManager (AES-256-GCM Envelope Encryption)
+│   ├── enrollment_service.py   # Multi-sample centroid aggregation & secure container storage
+│   ├── verification_service.py # Live probe verification with dynamic DB thresholding
+│   ├── profile_service.py      # Profile retrieval, history, re-enrollment shredding, revocation
+│   ├── schemas.py              # Pydantic schemas (EnrollmentResponse, VerificationResponse, etc.)
+│   └── exceptions.py           # Biometric domain exception hierarchy
 ├── auth/                       # Authentication, Session & Crypto Module (Phase 7C)
 │   ├── password.py             # Argon2id password hashing & strength validation
 │   ├── jwt_handler.py          # PyJWT access token generation & claims validation
@@ -381,25 +402,25 @@ Phase 5 culminates in a publication-grade research report synthesizing Phases 1 
 
 ## 8. Execution Commands
 
-### 1. Run Complete Test Suite (256 Passed)
+### 1. Run Complete Test Suite (413 Passed)
 ```bash
-# Run all 239 tests across all phases (Audio, Speaker, Enrollment, Verification, Evaluation)
+# Run all 413 tests across all phases (Audio, Speaker, Enrollment, Verification, Evaluation, DB, Auth, Biometrics, Monitoring, Security)
 pytest -v
 
-# Run Phase 5 Evaluation tests only (86 passed: 10 in 5A + 38 in 5B + 18 in 5C + 20 in 5D)
+# Run Phase 7E Security & Operational Hardening tests only (40 passed)
+pytest -v tests/security/ tests/monitoring/ tests/database/test_database_resilience.py
+
+# Run Phase 7D Voice Biometrics & Live Pipeline tests only (26 passed)
+pytest -v tests/biometrics/
+
+# Run Phase 7C Authentication & User Management tests only (29 passed)
+pytest -v tests/auth/ tests/users/ tests/consent/
+
+# Run Phase 5 Evaluation & Statistical Robustness tests only (137 passed)
 pytest -v tests/evaluation/
 
-# Run Phase 4 Speaker Verification tests only (53 passed)
-pytest -v tests/verification/
-
-# Run Phase 3 Voice Enrollment tests only (37 passed)
-pytest -v tests/enrollment/
-
-# Run Phase 2 Speaker / ECAPA tests only (32 passed)
-pytest -v tests/speaker/
-
-# Run Phase 1 Audio Preprocessing tests only (31 passed)
-pytest -v tests/test_audio_preprocessor.py tests/test_audio_api.py
+# Run AI Engine & Audio Preprocessing tests (181 passed)
+pytest -v tests/audio/ tests/speaker/ tests/enrollment/ tests/verification/
 ```
 
 ### 2. Run Phase 5D Statistical Validation & Robustness Analysis

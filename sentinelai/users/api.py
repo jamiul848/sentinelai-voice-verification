@@ -33,6 +33,7 @@ from sentinelai.auth.schemas import (
     UserResponse,
 )
 from sentinelai.database.models.user import User
+from sentinelai.security.rate_limiter import RateLimiter, get_trusted_client_ip
 from sentinelai.users.service import UserService
 
 user_router = APIRouter(prefix="/api/v1/users", tags=["User Management"])
@@ -40,9 +41,7 @@ admin_router = APIRouter(prefix="/api/v1/admin/users", tags=["Admin User Managem
 
 
 def _extract_ip(request: Request) -> Optional[str]:
-    if request.client:
-        return request.client.host
-    return None
+    return get_trusted_client_ip(request)
 
 
 # ------------------------------------------------------------------------------
@@ -94,6 +93,7 @@ async def update_me(
     "/change-password",
     response_model=ApiResponse[dict],
     summary="Change account password",
+    dependencies=[Depends(RateLimiter("password_change", key_type="user"))],
 )
 async def change_password(
     request: Request,
