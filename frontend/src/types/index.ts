@@ -245,6 +245,137 @@ export interface AdminUserListItem extends User {
   has_voice_profile?: boolean;
 }
 
+export interface AdminOverviewResponse {
+  users: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
+  voice_profiles: {
+    total: number;
+    active: number;
+    revoked: number;
+  };
+  verifications: {
+    total: number;
+    matches: number;
+    no_matches: number;
+    match_rate: number;
+    avg_latency_ms: number;
+  };
+  system_health: {
+    status: string;
+    uptime_seconds: number;
+    database_status: string;
+    redis_status: string;
+    model_loaded: boolean;
+    encryption_configured: boolean;
+  };
+  recent_audit_events: Array<{
+    id: string;
+    action: string;
+    resource_type: string;
+    resource_id: string;
+    actor_user_id?: string | null;
+    created_at: string;
+  }>;
+}
+
+export interface AdminProfileListItem {
+  id: string;
+  user_id: string;
+  user_email?: string | null;
+  user_full_name?: string | null;
+  status: "ACTIVE" | "REVOKED";
+  sample_count: number;
+  mean_pairwise_similarity: number;
+  model_identifier: string;
+  created_at: string;
+  updated_at: string;
+  revoked_at?: string | null;
+}
+
+export interface AdminProfileListResponse {
+  total: number;
+  items: AdminProfileListItem[];
+}
+
+export interface AdminTimelineItem {
+  date: string;
+  matches: number;
+  no_matches: number;
+  total: number;
+  avg_latency_ms: number;
+}
+
+export interface AdminAnalyticsResponse {
+  total_verifications: number;
+  matches: number;
+  no_matches: number;
+  match_rate: number;
+  no_match_rate: number;
+  average_latency_ms: number;
+  timeline: AdminTimelineItem[];
+  active_threshold?: {
+    version_tag: string;
+    model_identifier: string;
+    threshold_value: number;
+    calibration_dataset: string;
+    calibration_criterion: string;
+  } | null;
+}
+
+export interface ThresholdConfigResponse {
+  id: string;
+  version_tag: string;
+  model_identifier: string;
+  threshold_value: number;
+  calibration_dataset: string;
+  calibration_criterion: string;
+  calibration_metadata: Record<string, any>;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ThresholdCreatePayload {
+  version_tag: string;
+  model_identifier?: string;
+  threshold_value: number;
+  calibration_dataset: string;
+  calibration_criterion?: string;
+  calibration_metadata?: Record<string, any>;
+  is_active?: boolean;
+}
+
+export interface AdminAuditLogItem {
+  id: string;
+  actor_user_id?: string | null;
+  actor_email?: string | null;
+  action: string;
+  resource_type: string;
+  resource_id: string;
+  changes?: Record<string, any> | null;
+  created_at: string;
+}
+
+export interface AdminAuditLogListResponse {
+  total: number;
+  skip: number;
+  limit: number;
+  items: AdminAuditLogItem[];
+}
+
+export interface AdminSecurityEventsResponse {
+  total: number;
+  events: AdminAuditLogItem[];
+  rate_limiter: {
+    backend: string;
+    rules: Record<string, string>;
+    redis_configured: boolean;
+  };
+}
+
 export interface ThresholdConfig {
   id: string;
   version_tag: string;

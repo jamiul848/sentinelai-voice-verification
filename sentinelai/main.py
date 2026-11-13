@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 
+from sentinelai.admin.api import router as admin_operations_router
 from sentinelai.audio.api import router as audio_router
 from sentinelai.auth.api import router as auth_router
 from sentinelai.auth.exceptions import (
@@ -166,6 +167,7 @@ def create_app() -> FastAPI:
     application.include_router(auth_router)
     application.include_router(user_router)
     application.include_router(admin_router)
+    application.include_router(admin_operations_router)
     application.include_router(consent_router)
 
     # Live Biometric Pipeline Bridge (Phase 7D)

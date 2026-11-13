@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/useAuthStore";
 import {
   Activity,
+  AlertTriangle,
   BarChart3,
   CheckCircle2,
   ChevronRight,
@@ -15,6 +16,7 @@ import {
   LayoutDashboard,
   Mic,
   Shield,
+  ShieldAlert,
   Sliders,
   Users,
   Settings as SettingsIcon,
@@ -41,10 +43,13 @@ export function Sidebar({ isAdmin = false, onCloseMobile }: SidebarProps) {
   const adminNavItems = [
     { name: "Admin Overview", href: "/admin/dashboard", icon: LayoutDashboard },
     { name: "User Management", href: "/admin/users", icon: Users },
+    { name: "Voice Profiles", href: "/admin/voice-profiles", icon: Shield },
     { name: "Verification Analytics", href: "/admin/analytics", icon: BarChart3 },
     { name: "Threshold Config", href: "/admin/thresholds", icon: Sliders },
     { name: "Audit Logs", href: "/admin/audit-logs", icon: FileText },
     { name: "System Health", href: "/admin/system-health", icon: Activity },
+    { name: "Security Events", href: "/admin/security-events", icon: ShieldAlert },
+    { name: "Admin Settings", href: "/admin/settings", icon: SettingsIcon },
   ];
 
   const navItems = isAdmin ? adminNavItems : userNavItems;
